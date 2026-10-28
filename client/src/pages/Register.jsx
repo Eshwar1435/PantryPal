@@ -1,41 +1,9 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { LockKeyhole, Mail, Soup, UserRound } from 'lucide-react';
 
-// Register form: validates on the frontend, then goes to /pantries (no real auth yet).
-export default function Register() {
-  const navigate = useNavigate();
-  const [form, setForm] = useState({ name: '', email: '', password: '' });
-  const [errors, setErrors] = useState({});
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const errs = {};
-    if (!form.name.trim()) errs.name = 'Name is required';
-    if (!form.email.trim()) errs.email = 'Email is required';
-    else if (!/^\S+@\S+\.\S+$/.test(form.email)) errs.email = 'Enter a valid email';
-    if (!form.password) errs.password = 'Password is required';
-    else if (form.password.length < 6) errs.password = 'Password must be at least 6 characters';
-    setErrors(errs);
-    if (Object.keys(errs).length === 0) navigate('/pantries');
-  };
-
-  return (
-    <form className="card auth-card" onSubmit={handleSubmit} noValidate>
-      <h1>Create account</h1>
-      <label>Name
-        <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-        {errors.name && <span className="error">{errors.name}</span>}
-      </label>
-      <label>Email
-        <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-        {errors.email && <span className="error">{errors.email}</span>}
-      </label>
-      <label>Password
-        <input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
-        {errors.password && <span className="error">{errors.password}</span>}
-      </label>
-      <button className="btn" type="submit">Create account</button>
-      <p className="muted">Already registered? <Link to="/login">Log in</Link></p>
-    </form>
-  );
+export default function Register(){
+ const navigate=useNavigate(); const [form,setForm]=useState({name:'',email:'',password:''}); const [errors,setErrors]=useState({});
+ const submit=e=>{e.preventDefault();const next={};if(!form.name.trim())next.name='Name is required.';if(!/^\S+@\S+\.\S+$/.test(form.email))next.email='Enter a valid email address.';if(form.password.length<6)next.password='Password must be at least 6 characters.';setErrors(next);if(!Object.keys(next).length)navigate('/dashboard');};
+ return <div className="auth-page"><div className="auth-brand-panel"><div className="auth-brand"><span><Soup/></span><strong>PantryPal</strong></div><div><h2>One pantry. Less waste. Everyone included.</h2><p>Create a shared workspace for your household, team, or community.</p></div><div className="auth-visual"><span/><span/><span/></div></div><main className="auth-form-panel"><form className="auth-form" onSubmit={submit} noValidate><p className="eyebrow">Owner portal</p><h1>Owner Registration</h1><p className="auth-subtitle">Create your PantryPal owner workspace.</p><label>Full name<div className="input-icon"><UserRound size={18}/><input value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="Your name"/></div>{errors.name&&<small className="error">{errors.name}</small>}</label><label>Email address<div className="input-icon"><Mail size={18}/><input type="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} placeholder="name@example.com"/></div>{errors.email&&<small className="error">{errors.email}</small>}</label><label>Password<div className="input-icon"><LockKeyhole size={18}/><input type="password" value={form.password} onChange={e=>setForm({...form,password:e.target.value})} placeholder="At least 6 characters"/></div>{errors.password&&<small className="error">{errors.password}</small>}</label><button className="btn auth-submit">Create account</button><p className="auth-switch">Already have an account? <Link to="/login">Owner sign in</Link></p><p className="portal-switch"><Link to="/buyer/register">Create a buyer account instead</Link></p></form></main></div>;
 }

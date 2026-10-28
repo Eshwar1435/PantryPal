@@ -7,7 +7,6 @@ export default function Navbar() {
     <nav className="navbar">
       <span className="brand">PantryPal</span>
       <div className="nav-links">
-        <NavLink to="/pantries">Pantries</NavLink>
         <NavLink to="/members">Members</NavLink>
         <NavLink to="/activity">Activity</NavLink>
         <button className="link-button" onClick={() => navigate('/login')}>Logout</button>
