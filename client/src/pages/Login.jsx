@@ -1,36 +1,9 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { LockKeyhole, Mail, Soup } from 'lucide-react';
 
-// Login form: validates on the frontend, then goes to /pantries (no real auth yet).
-export default function Login() {
-  const navigate = useNavigate();
-  const [form, setForm] = useState({ email: '', password: '' });
-  const [errors, setErrors] = useState({});
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const errs = {};
-    if (!form.email.trim()) errs.email = 'Email is required';
-    else if (!/^\S+@\S+\.\S+$/.test(form.email)) errs.email = 'Enter a valid email';
-    if (!form.password) errs.password = 'Password is required';
-    else if (form.password.length < 6) errs.password = 'Password must be at least 6 characters';
-    setErrors(errs);
-    if (Object.keys(errs).length === 0) navigate('/pantries');
-  };
-
-  return (
-    <form className="card auth-card" onSubmit={handleSubmit} noValidate>
-      <h1>Log in</h1>
-      <label>Email
-        <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-        {errors.email && <span className="error">{errors.email}</span>}
-      </label>
-      <label>Password
-        <input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
-        {errors.password && <span className="error">{errors.password}</span>}
-      </label>
-      <button className="btn" type="submit">Log in</button>
-      <p className="muted">New here? <Link to="/register">Create an account</Link></p>
-    </form>
-  );
+export default function Login(){
+ const navigate=useNavigate(); const [form,setForm]=useState({email:'',password:''}); const [errors,setErrors]=useState({});
+ const submit=e=>{e.preventDefault();const next={};if(!/^\S+@\S+\.\S+$/.test(form.email)) next.email='Enter a valid email address.';if(form.password.length<6) next.password='Password must be at least 6 characters.';setErrors(next);if(!Object.keys(next).length)navigate('/dashboard');};
+ return <div className="auth-page"><div className="auth-brand-panel"><div className="auth-brand"><span><Soup/></span><strong>PantryPal</strong></div><div><h2>Keep every shared pantry in perfect order.</h2><p>Track inventory, prevent waste, and keep everyone on the same page.</p></div><div className="auth-visual"><span/><span/><span/></div></div><main className="auth-form-panel"><form className="auth-form" onSubmit={submit} noValidate><p className="eyebrow">Owner portal</p><h1>Owner Login</h1><p className="auth-subtitle">Manage your pantry workspace and inventory.</p><label>Email address<div className="input-icon"><Mail size={18}/><input type="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} placeholder="name@example.com"/></div>{errors.email&&<small className="error">{errors.email}</small>}</label><label>Password<div className="input-icon"><LockKeyhole size={18}/><input type="password" value={form.password} onChange={e=>setForm({...form,password:e.target.value})} placeholder="At least 6 characters"/></div>{errors.password&&<small className="error">{errors.password}</small>}</label><button className="btn auth-submit">Sign in as Owner</button><p className="auth-switch">New to PantryPal? <Link to="/register">Create an account</Link></p><p className="portal-switch"><Link to="/login">Choose another portal</Link></p></form></main></div>;
 }

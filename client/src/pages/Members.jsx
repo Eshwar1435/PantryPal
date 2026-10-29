@@ -1,47 +1,33 @@
-import { useState } from 'react';
-import { members as mockMembers, isOwner } from '../data/mockData.js';
+import { useRef, useState } from 'react';
+import { Camera, ChevronRight, Pencil, Plus, ShoppingCart, Trash2, X } from 'lucide-react';
+import { usePantry } from '../context/PantryContext.jsx';
+import { resizeImage } from '../utils/resizeImage.js';
 
-// Member list plus an owner-only "add by email" form (local state only).
 export default function Members() {
-  const [members, setMembers] = useState(mockMembers);
-  const [email, setEmail] = useState('');
-  const [error, setError] = useState('');
+  const { items, memberCarts, activities, members, addMember, updateMember, removeMember } = usePantry();
+  const fileInput = useRef(null);
+  const [selected,setSelected]=useState(null);
+  const [editModal,setEditModal]=useState(false);
+  const [editForm,setEditForm]=useState({ name:'', email:'', photo:'' });
+  const [modal,setModal]=useState(false);
+  const [email,setEmail]=useState('');
+  const [name,setName]=useState('');
+  const [error,setError]=useState('');
+  const add=e=>{e.preventDefault();if(!name.trim()||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){setError('Enter a name and valid email address.');return;}addMember({id:'u'+Date.now(),name:name.trim(),email,role:'Member',photo:''});setName('');setEmail('');setError('');setModal(false);};
+  const openEdit = member => { setSelected(member); setEditForm({ name: member.name, email: member.email, photo: member.photo || '' }); setEditModal(true); setError(''); };
+  const readPhoto = async event => { const file = event.target.files?.[0]; if (!file) return; if (!file.type.startsWith('image/')) { setError('Please choose an image file.'); return; } try { const photo = await resizeImage(file, 240, 0.78); setEditForm(form => ({ ...form, photo })); setError(''); } catch (imageError) { setError(imageError.message); } };
+  const saveEdit = event => { event.preventDefault(); if (!editForm.name.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editForm.email)) { setError('Enter a name and valid email address.'); return; } updateMember(selected.id, { name: editForm.name.trim(), email: editForm.email.trim(), photo: editForm.photo }); setSelected(previous => previous ? { ...previous, name: editForm.name.trim(), email: editForm.email.trim(), photo: editForm.photo } : previous); setEditModal(false); setError(''); };
+  const selectedCart=selected?.id ? (memberCarts[selected.id] || {}) : {};
+  const cartEntries=Object.entries(selectedCart).filter(([,quantity])=>quantity>0);
+  const reservedCount=cartEntries.reduce((sum,[,quantity])=>sum+quantity,0);
+  const memberActivities=selected ? activities.filter(entry=>entry.memberId===selected.id || entry.user===selected.name) : [];
 
-  const handleAdd = (e) => {
-    e.preventDefault();
-    if (!/^\S+@\S+\.\S+$/.test(email)) return setError('Enter a valid email');
-    setMembers([...members, { id: 'u' + Date.now(), name: email.split('@')[0], email, role: 'Member' }]);
-    setEmail('');
-    setError('');
-  };
-
-  return (
-    <>
-      <h1>Members</h1>
-      <div className="table-wrap">
-        <table>
-          <thead><tr><th>Name</th><th>Email</th><th>Role</th></tr></thead>
-          <tbody>
-            {members.map((m) => (
-              <tr key={m.id}><td>{m.name}</td><td>{m.email}</td><td>{m.role}</td></tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Only the pantry owner sees this section (mock isOwner flag) */}
-      {isOwner && (
-        <>
-          <h2>Add a member</h2>
-          <form className="card inline-form" onSubmit={handleAdd} noValidate>
-            <label>Member email
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-              {error && <span className="error">{error}</span>}
-            </label>
-            <button className="btn" type="submit">Add member</button>
-          </form>
-        </>
-      )}
-    </>
-  );
+  const totalReserved=members.filter(member=>member.role==='Member').reduce((sum,member)=>sum+Object.values(memberCarts[member.id] || {}).reduce((memberSum,quantity)=>memberSum+quantity,0),0);
+  const activeMembers=members.filter(member=>member.role==='Member' && Object.values(memberCarts[member.id] || {}).some(quantity=>quantity>0)).length;
+  return <div className="page members-page"><div className="page-heading"><div><p className="eyebrow">Shared access</p><h1>Members</h1><p>Manage members and review their pantry activity and reserved stock.</p></div><button className="btn" onClick={()=>setModal(true)}><Plus size={18}/> Add member</button></div>
+  <div className="member-page-summary"><div><span>Total members</span><strong>{members.length}</strong></div><div><span>Active reservations</span><strong>{activeMembers}</strong></div><div><span>Reserved units</span><strong>{totalReserved}</strong></div></div>
+  <div className="members-grid">{members.map(member=><article className="member-card member-card-clickable" key={member.id} role="button" tabIndex={0} onClick={()=>setSelected(member)} onKeyDown={event=>event.key==='Enter'&&setSelected(member)}><div className="member-avatar">{member.photo ? <img src={member.photo} alt={`${member.name} profile`}/> : member.name.split(' ').map(n=>n[0]).join('').slice(0,2)}</div><div className="member-info"><h2>{member.name}</h2><p>{member.email}</p><span className={`role ${member.role.toLowerCase()}`}>{member.role}</span></div>{member.role==='Member'&&<span className="member-cart-count"><ShoppingCart size={15}/>{Object.values(memberCarts[member.id] || {}).reduce((sum,value)=>sum+value,0)} reserved</span>}<button type="button" className="icon-button member-edit-button" onClick={event=>{event.stopPropagation();openEdit(member)}} aria-label={`Edit ${member.name}`}><Pencil size={17}/></button><ChevronRight className="member-open-icon"/>{member.role!== 'Owner' && <button className="icon-button danger" onClick={event=>{event.stopPropagation();removeMember(member.id);}} aria-label={`Remove ${member.name}`}><Trash2 size={18}/></button>}</article>)}</div>
+  {selected&&<div className="modal-backdrop member-detail-backdrop" onMouseDown={event=>event.target===event.currentTarget&&setSelected(null)}><section className="modal member-detail-modal"><div className="modal-heading"><div><p className="eyebrow">Member details</p><h2>{selected.name}</h2><p>{selected.email} · {selected.role}</p></div><button type="button" className="icon-button" onClick={()=>setSelected(null)} aria-label="Close member details"><X/></button></div><div className="member-detail-summary"><div><span>Reserved units</span><strong>{reservedCount}</strong></div><div><span>Cart products</span><strong>{cartEntries.length}</strong></div><div><span>Recent actions</span><strong>{memberActivities.length}</strong></div></div><div className="member-detail-section"><h3>Current reserved items</h3>{cartEntries.length?cartEntries.map(([itemId,quantity])=>{const item=items.find(candidate=>candidate.id===itemId);return item?<div className="member-detail-row" key={itemId}><span className="item-avatar">{item.name[0]}</span><div><strong>{item.name}</strong><small>{item.category}</small></div><span>{quantity} {item.unit}</span><span className="reserved-label">Reserved</span></div>:null;}):<div className="member-inline-empty">No items are currently reserved.</div>}</div><div className="member-detail-section"><h3>Activity</h3>{memberActivities.length?memberActivities.slice(0,8).map(entry=><div className="member-detail-row activity-detail-row" key={entry.id}><div><strong>{entry.action || 'Updated'} {entry.item}</strong><small>{entry.note}</small></div><span>{entry.time}</span></div>):<div className="member-inline-empty">No activity recorded for this member.</div>}</div></section></div>}
+  {modal && <div className="modal-backdrop"><form className="modal small-modal" onSubmit={add}><div className="modal-heading"><div><h2>Add member</h2><p>Invite someone to this pantry.</p></div><button type="button" className="icon-button" onClick={()=>setModal(false)}>×</button></div><div className="form-grid single"><label>Name<input value={name} onChange={e=>setName(e.target.value)}/></label><label>Email address<input type="email" value={email} onChange={e=>setEmail(e.target.value)}/></label></div>{error&&<div className="form-error">{error}</div>}<div className="modal-actions"><button type="button" className="btn secondary" onClick={()=>setModal(false)}>Cancel</button><button className="btn">Add member</button></div></form></div>}
+  {editModal && selected && <div className="modal-backdrop member-edit-backdrop"><form className="modal small-modal member-edit-modal" onSubmit={saveEdit}><div className="modal-heading"><div><h2>Edit member profile</h2><p>Update the member's name, email and photo.</p></div><button type="button" className="icon-button" onClick={()=>setEditModal(false)}>×</button></div><div className="member-photo-editor"><div className="member-avatar large">{editForm.photo ? <img src={editForm.photo} alt="Selected profile"/> : editForm.name.split(' ').map(n=>n[0]).join('').slice(0,2)}</div><button type="button" className="btn secondary" onClick={()=>fileInput.current?.click()}><Camera size={18}/> Change photo</button><input ref={fileInput} hidden type="file" accept="image/*" onChange={readPhoto}/></div><div className="form-grid single"><label>Name<input value={editForm.name} onChange={event=>setEditForm({...editForm,name:event.target.value})}/></label><label>Email address<input type="email" value={editForm.email} onChange={event=>setEditForm({...editForm,email:event.target.value})}/></label></div>{error&&<div className="form-error">{error}</div>}<div className="modal-actions"><button type="button" className="btn secondary" onClick={()=>setEditModal(false)}>Cancel</button><button className="btn">Save profile</button></div></form></div>}</div>;
 }

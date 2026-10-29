@@ -1,41 +1,12 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { pantries as mockPantries, currentUser } from '../data/mockData.js';
+import { ArrowUpRight, Boxes, Plus, Users } from 'lucide-react';
+import { pantries as mockPantries, currentUser, items } from '../data/mockData.js';
 
-// Lists pantries the user belongs to and lets them "create" one (local state only).
 export default function PantryList() {
-  const [pantries, setPantries] = useState(mockPantries.filter((p) => p.memberIds.includes(currentUser.id)));
+  const [pantries, setPantries] = useState(mockPantries.filter(p => p.memberIds.includes(currentUser.id)));
+  const [modal, setModal] = useState(false);
   const [name, setName] = useState('');
   const [error, setError] = useState('');
-
-  const handleCreate = (e) => {
-    e.preventDefault();
-    if (!name.trim()) return setError('Pantry name is required');
-    setPantries([...pantries, { id: 'p' + Date.now(), name: name.trim(), ownerId: currentUser.id, memberIds: [currentUser.id] }]);
-    setName('');
-    setError('');
-  };
-
-  return (
-    <>
-      <h1>Your pantries</h1>
-      <div className="card-grid">
-        {pantries.map((p) => (
-          <Link key={p.id} to={`/pantries/${p.id}`} className="card pantry-card">
-            <h2>{p.name}</h2>
-            <p className="muted">{p.memberIds.length} members{p.ownerId === currentUser.id ? ' · You own this' : ''}</p>
-          </Link>
-        ))}
-      </div>
-
-      <h2>Create a pantry</h2>
-      <form className="card inline-form" onSubmit={handleCreate} noValidate>
-        <label>Pantry name
-          <input value={name} onChange={(e) => setName(e.target.value)} />
-          {error && <span className="error">{error}</span>}
-        </label>
-        <button className="btn" type="submit">Create pantry</button>
-      </form>
-    </>
-  );
+  const create = e => { e.preventDefault(); if (!name.trim()) return setError('Pantry name is required.'); setPantries([...pantries,{id:'p'+Date.now(),name:name.trim(),ownerId:currentUser.id,memberIds:[currentUser.id]}]); setName(''); setError(''); setModal(false); };
+  return <div className="page"><div className="page-heading"><div><p className="eyebrow">Workspace</p><h1>My Pantries</h1><p>Organize groceries and supplies across shared spaces.</p></div><button className="btn" onClick={() => setModal(true)}><Plus size={18}/> Create pantry</button></div><div className="pantry-grid">{pantries.map((pantry,index) => <article className="pantry-card" key={pantry.id}><div className={`pantry-cover cover-${index % 3}`}><span><Boxes size={28}/></span></div><div className="pantry-card-body"><div className="pantry-title"><div><h2>{pantry.name}</h2><span>{pantry.ownerId === currentUser.id ? 'Owned by you' : 'Shared pantry'}</span></div><ArrowUpRight size={20}/></div><div className="pantry-meta"><span><Boxes size={17}/><strong>{items.filter(i => i.pantryId === pantry.id).length}</strong> items</span><span><Users size={17}/><strong>{pantry.memberIds.length}</strong> members</span></div><a href={`/inventory`} className="pantry-open">Open inventory <ArrowUpRight size={16}/></a></div></article>)}</div>{modal && <div className="modal-backdrop" onMouseDown={e => e.target === e.currentTarget && setModal(false)}><form className="modal small-modal" onSubmit={create}><div className="modal-heading"><div><h2>Create a pantry</h2><p>Add a new shared space.</p></div><button type="button" className="icon-button" onClick={() => setModal(false)}>×</button></div><label>Pantry name<input autoFocus value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Office Kitchen"/></label>{error && <div className="form-error">{error}</div>}<div className="modal-actions"><button type="button" className="btn secondary" onClick={() => setModal(false)}>Cancel</button><button className="btn">Create pantry</button></div></form></div>}</div>;
 }
