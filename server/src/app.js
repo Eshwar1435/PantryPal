@@ -2,6 +2,8 @@
 const express = require("express");
 const cors = require("cors");
 
+const pantryRoutes = require("./routes/pantryRoutes");
+
 const app = express();
 
 app.use(cors());
@@ -13,5 +15,7 @@ app.get("/api/health", (req, res) => {
     message: "PantryPal API is running",
   });
 });
+
+app.use("/api/pantries", pantryRoutes);
 
 module.exports = app;
