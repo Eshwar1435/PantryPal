@@ -461,7 +461,14 @@ body { background: #F7F5EF; }
 .stock-input-wrap span { color: var(--muted); }
 
 /* Collapsible three-line sidebar menu */
-.menu-button { display: inline-grid !important; width: 40px; height: 40px; margin-right: 4px; border: 1px solid var(--line); background: var(--surface); }
+.topbar { gap: 12px; }
+.menu-button { display: inline-grid !important; flex: 0 0 40px; width: 40px; height: 40px; margin: 0; padding: 0; place-items: center; align-items: center; justify-items: center; line-height: 0; border: 1px solid var(--line); background: var(--surface); color: var(--green); }
+.menu-button svg { display: block; }
+.menu-button:hover { background: var(--green-soft); color: var(--green-dark); }
+.menu-button:focus-visible { outline: 3px solid rgba(143,175,154,.55); outline-offset: 2px; }
+.menu-button:active { background: var(--green); color: #fff; transform: scale(.96); }
+.status.soon { background: #fff0df; color: #b2671b; }
+.status.safe { background: #eaf4ef; color: #347b58; }
 .sidebar { transition: width .22s ease, transform .22s ease, box-shadow .22s ease; }
 .main-shell { transition: margin-left .22s ease; }
 .sidebar-collapsed .sidebar { width: 76px; padding-left: 10px; padding-right: 10px; }

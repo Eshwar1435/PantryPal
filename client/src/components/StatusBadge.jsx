@@ -12,14 +12,14 @@ export function getStatuses(item) {
   return statuses;
 }
 
-const classFor = { 'Expired': 'danger', 'Expiring Soon': 'warn', 'Low Stock': 'warn', 'OK': 'ok' };
+const classFor = { 'Expired': 'expired', 'Expiring Soon': 'expiring-soon', 'Low Stock': 'low-stock', 'OK': 'safe' };
 
 // Shows one coloured badge per status.
 export default function StatusBadge({ item }) {
   return (
     <>
       {getStatuses(item).map((s) => (
-        <span key={s} className={`badge badge-${classFor[s]}`}>{s}</span>
+        <span key={s} className={`status ${classFor[s]}`}>{s}</span>
       ))}
     </>
   );

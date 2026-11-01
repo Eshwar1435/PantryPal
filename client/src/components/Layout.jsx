@@ -44,7 +44,7 @@ export default function Layout() {
 
   return (
     <div className={`app-shell owner-shell ${ownerPageClass} ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
-      <aside className={`sidebar ${open ? 'open' : ''}`}>
+      <aside id="pantry-sidebar" className={`sidebar ${open ? 'open' : ''}`}>
         <div className="brand-row">
           <div className="brand-mark"><Soup size={22} /></div>
           <div><strong>PantryPal</strong><span>Shared pantry management</span></div>
@@ -63,7 +63,7 @@ export default function Layout() {
       {open && <button className="sidebar-backdrop" aria-label="Close menu" onClick={() => setOpen(false)} />}
       <div className="main-shell">
         <header className="topbar">
-          <button className="icon-button menu-button" onClick={() => window.innerWidth <= 800 ? setOpen(open => !open) : setSidebarCollapsed(collapsed => !collapsed)} aria-label="Toggle sidebar menu"><Menu /></button>
+          <button className="icon-button menu-button" type="button" onClick={() => window.innerWidth <= 800 ? setOpen(open => !open) : setSidebarCollapsed(collapsed => !collapsed)} aria-label="Toggle sidebar menu" aria-expanded={window.innerWidth <= 800 ? open : !sidebarCollapsed} aria-controls="pantry-sidebar"><Menu size={20} /></button>
           <div className="topbar-search"><span>Shared pantry</span><strong>{selectedPantry?.name || 'Select a pantry'}</strong></div>
           <div className="topbar-actions">
             <div className="theme-toggle" role="group" aria-label="Theme">

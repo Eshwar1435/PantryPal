@@ -30,7 +30,7 @@ const request = async (path, options = {}) => {
 const mapItem = item => ({
   ...item,
   id: item._id || item.id,
-  expiryDate: item.expiryDate ? item.expiryDate.slice(0, 10) : '',
+  expiryDate: item.expiryDate ? String(item.expiryDate).slice(0, 10) : '',
 });
 
 export const getPantryItems = async pantryId => {

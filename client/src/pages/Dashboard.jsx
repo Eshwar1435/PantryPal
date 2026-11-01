@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Activity, ArrowUpRight, Clock3, Package, Plus, TriangleAlert, Users, Warehouse } from 'lucide-react';
 import { usePantry } from '../context/PantryContext.jsx';
-import { getStatuses } from '../components/StatusBadge.jsx';
+import StatusBadge, { getStatuses } from '../components/StatusBadge.jsx';
 import { getDashboardTime } from '../utils/dashboardTime.js';
 import { daysUntilExpiry } from '../utils/inventoryDates.js';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -105,7 +105,7 @@ export default function Dashboard() {
       <div className="dashboard-grid">
         <section className="panel inventory-overview">
           <div className="panel-heading"><div><h2>Inventory overview</h2><p>{items.length ? 'Items in this pantry' : 'No inventory items yet'}</p></div><Link to={`/pantries/${activePantryId}/inventory`}>View all <ArrowUpRight size={16}/></Link></div>
-          {items.length ? <div className="table-wrap"><table><thead><tr><th>Item</th><th>Category</th><th>Quantity</th><th>Status</th></tr></thead><tbody>{items.slice(0, 5).map(item => <tr key={item.id}><td><strong>{item.name}</strong></td><td>{item.category}</td><td>{item.quantity} {item.unit}</td><td><span className={`status ${getStatuses(item)[0]?.toLowerCase().replaceAll(' ', '-')}`}>{getStatuses(item)[0]}</span></td></tr>)}</tbody></table></div> : <div className="empty-state"><p>This pantry has no inventory items.</p></div>}
+          {items.length ? <div className="table-wrap"><table><thead><tr><th>Item</th><th>Category</th><th>Quantity</th><th>Status</th></tr></thead><tbody>{items.slice(0, 5).map(item => <tr key={item.id}><td><strong>{item.name}</strong></td><td>{item.category}</td><td>{item.quantity} {item.unit}</td><td><StatusBadge item={item} /></td></tr>)}</tbody></table></div> : <div className="empty-state"><p>This pantry has no inventory items.</p></div>}
         </section>
         <section className="panel alerts-panel">
           <div className="panel-heading"><div><h2>Stock alerts</h2><p>{low.length} items need restocking</p></div></div>

@@ -1,34 +1,50 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { CalendarClock, CircleCheck } from 'lucide-react';
 import { useParams } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext.jsx';
 import { usePantry } from '../context/PantryContext.jsx';
-import { daysUntilExpiry } from '../utils/inventoryDates.js';
+import { daysUntilExpiry, formatExpiryDate } from '../utils/inventoryDates.js';
+import { getGlobalItems } from '../services/inventoryApi.js';
 
 export default function ExpiryAlerts() {
   const { pantryId } = useParams();
-  const { user } = useAuth();
-  const {
-    items, updateInventoryItem, inventoryPantryId, inventoryLoading,
-    inventoryError, loadInventory, selectPantry, selectedPantry, pantries,
-  } = usePantry();
-  const activePantryId = pantryId || inventoryPantryId;
-  const activePantry = pantries.find(pantry => String(pantry.id) === String(activePantryId)) || selectedPantry;
-  const isOwner = String(activePantry?.ownerId) === String(user?.id || user?._id);
+  const { selectedPantry } = usePantry();
+  const [items, setItems] = useState([]);
+  const [inventoryLoading, setInventoryLoading] = useState(true);
+  const [inventoryError, setInventoryError] = useState('');
 
   useEffect(() => {
-    if (activePantryId) {
-      selectPantry(activePantryId);
-      loadInventory(activePantryId).catch(() => {});
-    }
-  }, [activePantryId]);
+    let active = true;
+    setInventoryLoading(true);
+    setInventoryError('');
+    getGlobalItems()
+      .then(loadedItems => {
+        if (active) setItems(loadedItems);
+      })
+      .catch(error => {
+        if (active) {
+          setItems([]);
+          setInventoryError(error.message);
+        }
+      })
+      .finally(() => {
+        if (active) setInventoryLoading(false);
+      });
+    return () => { active = false; };
+  }, []);
 
-  const expired = items.filter(item => daysUntilExpiry(item.expiryDate) < 0);
-  const soon = items.filter(item => {
+  const visibleItems = pantryId
+    ? items.filter(item => String(item.pantryId) === String(pantryId))
+    : items;
+
+  const expired = visibleItems.filter(item => {
     const days = daysUntilExpiry(item.expiryDate);
-    return days >= 0 && days <= 7;
+    return days !== null && days < 0;
   });
-  const safe = items.filter(item => {
+  const soon = visibleItems.filter(item => {
+    const days = daysUntilExpiry(item.expiryDate);
+    return days !== null && days >= 0 && days <= 7;
+  });
+  const safe = visibleItems.filter(item => {
     const days = daysUntilExpiry(item.expiryDate);
     return days !== null && days > 7;
   });
@@ -42,9 +58,9 @@ export default function ExpiryAlerts() {
     <div className="page">
       <div className="page-heading">
         <div>
-          <p className="eyebrow">{activePantry?.name || 'Food freshness'}</p>
+          <p className="eyebrow">{pantryId ? selectedPantry?.name || 'Food freshness' : 'All accessible pantries'}</p>
           <h1>Expiry Alerts</h1>
-          <p>{isOwner ? 'Select an expiry date to update it using the calendar.' : 'Review items before they expire.'}</p>
+          <p>Review items before they expire.</p>
         </div>
       </div>
       {inventoryLoading ? <div className="empty-state"><p>Loading inventory...</p></div> : inventoryError ? <div className="form-error">{inventoryError}</div> : (
@@ -63,13 +79,14 @@ export default function ExpiryAlerts() {
               {section.items.length ? (
                 <div className="table-wrap">
                   <table>
-                    <thead><tr><th>Item</th><th>Quantity</th><th>Expiry date</th><th>Status</th></tr></thead>
+                    <thead><tr><th>Item</th><th>Pantry</th><th>Quantity</th><th>Expiry date</th><th>Status</th></tr></thead>
                     <tbody>
                       {section.items.map(item => (
                         <tr key={item.id}>
                           <td><strong>{item.name}</strong></td>
+                          <td>{item.pantryName || 'Unavailable pantry'}</td>
                           <td>{item.quantity} {item.unit}</td>
-                          <td>{isOwner ? <input className="expiry-date-input" type="date" value={item.expiryDate || ''} aria-label={`Change expiry date for ${item.name}`} onChange={event => updateInventoryItem(item.id, { expiryDate: event.target.value || null })} /> : item.expiryDate || 'No expiry date'}</td>
+                          <td>{formatExpiryDate(item.expiryDate)}</td>
                           <td><span className={`status ${section.tone}`}>{section.title}</span></td>
                         </tr>
                       ))}
