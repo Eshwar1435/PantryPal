@@ -1,0 +1,38 @@
+[
+  {
+    "_id": "6ae4686c8923971142966ae5",
+    "name": "Eshwar",
+    "email": "eshwar.test@example.com",
+    "passwordHash": "$2b$12$h5kkO2Ml8dQ35IEOEiLU7OWa6J./ivADZ7nSs2yEtMQVlz.5QuALe",
+    "createdAt": "2026-10-30T09:50:36.888Z",
+    "updatedAt": "2026-10-30T09:50:36.888Z",
+    "__v": 0
+  },
+  {
+    "_id": "6ae469108923971142966ae7",
+    "name": "Hamna",
+    "email": "hamna.test@example.com",
+    "passwordHash": "$2b$12$6d4VEaWoN4xykcEEI6YmbuOGHhH7HB9XY1n4VT68P0og9oNn10YTS",
+    "createdAt": "2026-10-30T09:53:20.367Z",
+    "updatedAt": "2026-10-30T09:53:20.367Z",
+    "__v": 0
+  },
+  {
+    "_id": "6ae5ad9023f13e6992fde8df",
+    "name": "Phase 7 Owner",
+    "email": "phase7.owner.1793437072426@example.com",
+    "passwordHash": "$2b$12$CnK.rDWwr7UrIEehRz8gRebnvX1iHreFMIXkTObb7sd0/HpkGumpS",
+    "createdAt": "2026-10-31T08:57:52.860Z",
+    "updatedAt": "2026-10-31T08:57:52.860Z",
+    "__v": 0
+  },
+  {
+    "_id": "6ae5ad9123f13e6992fde8e0",
+    "name": "Phase 7 Member",
+    "email": "phase7.member.1793437072426@example.com",
+    "passwordHash": "$2b$12$Ni93CwSybIxAkDySZ0k1sehL3bbY94CWR..7.rA03N7MrPAUP4p6K",
+    "createdAt": "2026-10-31T08:57:53.188Z",
+    "updatedAt": "2026-10-31T08:57:53.188Z",
+    "__v": 0
+  }
+]

@@ -1,0 +1,62 @@
+[
+  {
+    "_id": "6ae5ad9123f13e6992fde8e4",
+    "pantryId": "6ae5ad9123f13e6992fde8e1",
+    "itemId": "6ae5ad9123f13e6992fde8e3",
+    "userId": "6ae5ad9023f13e6992fde8df",
+    "changeAmount": 5,
+    "action": "ITEM_ADDED",
+    "note": "Added Phase 7 Rice",
+    "createdAt": "2026-10-31T08:57:53.878Z"
+  },
+  {
+    "_id": "6ae5ad9123f13e6992fde8e5",
+    "pantryId": "6ae5ad9123f13e6992fde8e1",
+    "itemId": "6ae5ad9123f13e6992fde8e3",
+    "userId": "6ae5ad9023f13e6992fde8df",
+    "changeAmount": 0,
+    "action": "ITEM_EDITED",
+    "note": "Edited Phase 7 Brown Rice",
+    "createdAt": "2026-10-31T08:57:53.887Z"
+  },
+  {
+    "_id": "6ae5ad9123f13e6992fde8e6",
+    "pantryId": "6ae5ad9123f13e6992fde8e1",
+    "itemId": "6ae5ad9123f13e6992fde8e3",
+    "userId": "6ae5ad9023f13e6992fde8df",
+    "changeAmount": 2,
+    "action": "QUANTITY_INCREASED",
+    "note": "Increased Phase 7 Brown Rice quantity",
+    "createdAt": "2026-10-31T08:57:53.898Z"
+  },
+  {
+    "_id": "6ae5ad9123f13e6992fde8e7",
+    "pantryId": "6ae5ad9123f13e6992fde8e1",
+    "itemId": "6ae5ad9123f13e6992fde8e3",
+    "userId": "6ae5ad9023f13e6992fde8df",
+    "changeAmount": -1,
+    "action": "QUANTITY_DECREASED",
+    "note": "Decreased Phase 7 Brown Rice quantity",
+    "createdAt": "2026-10-31T08:57:53.905Z"
+  },
+  {
+    "_id": "6ae5ad9123f13e6992fde8e8",
+    "pantryId": "6ae5ad9123f13e6992fde8e1",
+    "itemId": "6ae5ad9123f13e6992fde8e3",
+    "userId": "6ae5ad9123f13e6992fde8e0",
+    "changeAmount": 1,
+    "action": "QUANTITY_INCREASED",
+    "note": "Increased Phase 7 Brown Rice quantity",
+    "createdAt": "2026-10-31T08:57:53.917Z"
+  },
+  {
+    "_id": "6ae5ad9123f13e6992fde8e9",
+    "pantryId": "6ae5ad9123f13e6992fde8e1",
+    "itemId": "6ae5ad9123f13e6992fde8e3",
+    "userId": "6ae5ad9023f13e6992fde8df",
+    "changeAmount": 0,
+    "action": "ITEM_DELETED",
+    "note": "Deleted item: Phase 7 Brown Rice",
+    "createdAt": "2026-10-31T08:57:53.978Z"
+  }
+]

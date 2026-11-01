@@ -1,33 +1,310 @@
-import { useRef, useState } from 'react';
-import { Camera, ChevronRight, Pencil, Plus, ShoppingCart, Trash2, X } from 'lucide-react';
-import { usePantry } from '../context/PantryContext.jsx';
-import { resizeImage } from '../utils/resizeImage.js';
+import { useEffect, useState } from "react";
+import { Plus, Trash2, Users } from "lucide-react";
+import { useParams } from "react-router-dom";
+
+import { useAuth } from "../context/AuthContext.jsx";
+import {
+  getPantryMembers,
+  addPantryMember,
+  removePantryMember,
+} from "../services/pantryApi.js";
+import ConfirmDialog from "../components/ConfirmDialog.jsx";
 
 export default function Members() {
-  const { items, memberCarts, activities, members, addMember, updateMember, removeMember } = usePantry();
-  const fileInput = useRef(null);
-  const [selected,setSelected]=useState(null);
-  const [editModal,setEditModal]=useState(false);
-  const [editForm,setEditForm]=useState({ name:'', email:'', photo:'' });
-  const [modal,setModal]=useState(false);
-  const [email,setEmail]=useState('');
-  const [name,setName]=useState('');
-  const [error,setError]=useState('');
-  const add=e=>{e.preventDefault();if(!name.trim()||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){setError('Enter a name and valid email address.');return;}addMember({id:'u'+Date.now(),name:name.trim(),email,role:'Member',photo:''});setName('');setEmail('');setError('');setModal(false);};
-  const openEdit = member => { setSelected(member); setEditForm({ name: member.name, email: member.email, photo: member.photo || '' }); setEditModal(true); setError(''); };
-  const readPhoto = async event => { const file = event.target.files?.[0]; if (!file) return; if (!file.type.startsWith('image/')) { setError('Please choose an image file.'); return; } try { const photo = await resizeImage(file, 240, 0.78); setEditForm(form => ({ ...form, photo })); setError(''); } catch (imageError) { setError(imageError.message); } };
-  const saveEdit = event => { event.preventDefault(); if (!editForm.name.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editForm.email)) { setError('Enter a name and valid email address.'); return; } updateMember(selected.id, { name: editForm.name.trim(), email: editForm.email.trim(), photo: editForm.photo }); setSelected(previous => previous ? { ...previous, name: editForm.name.trim(), email: editForm.email.trim(), photo: editForm.photo } : previous); setEditModal(false); setError(''); };
-  const selectedCart=selected?.id ? (memberCarts[selected.id] || {}) : {};
-  const cartEntries=Object.entries(selectedCart).filter(([,quantity])=>quantity>0);
-  const reservedCount=cartEntries.reduce((sum,[,quantity])=>sum+quantity,0);
-  const memberActivities=selected ? activities.filter(entry=>entry.memberId===selected.id || entry.user===selected.name) : [];
+  const { id: pantryId } = useParams();
+  const { user } = useAuth();
 
-  const totalReserved=members.filter(member=>member.role==='Member').reduce((sum,member)=>sum+Object.values(memberCarts[member.id] || {}).reduce((memberSum,quantity)=>memberSum+quantity,0),0);
-  const activeMembers=members.filter(member=>member.role==='Member' && Object.values(memberCarts[member.id] || {}).some(quantity=>quantity>0)).length;
-  return <div className="page members-page"><div className="page-heading"><div><p className="eyebrow">Shared access</p><h1>Members</h1><p>Manage members and review their pantry activity and reserved stock.</p></div><button className="btn" onClick={()=>setModal(true)}><Plus size={18}/> Add member</button></div>
-  <div className="member-page-summary"><div><span>Total members</span><strong>{members.length}</strong></div><div><span>Active reservations</span><strong>{activeMembers}</strong></div><div><span>Reserved units</span><strong>{totalReserved}</strong></div></div>
-  <div className="members-grid">{members.map(member=><article className="member-card member-card-clickable" key={member.id} role="button" tabIndex={0} onClick={()=>setSelected(member)} onKeyDown={event=>event.key==='Enter'&&setSelected(member)}><div className="member-avatar">{member.photo ? <img src={member.photo} alt={`${member.name} profile`}/> : member.name.split(' ').map(n=>n[0]).join('').slice(0,2)}</div><div className="member-info"><h2>{member.name}</h2><p>{member.email}</p><span className={`role ${member.role.toLowerCase()}`}>{member.role}</span></div>{member.role==='Member'&&<span className="member-cart-count"><ShoppingCart size={15}/>{Object.values(memberCarts[member.id] || {}).reduce((sum,value)=>sum+value,0)} reserved</span>}<button type="button" className="icon-button member-edit-button" onClick={event=>{event.stopPropagation();openEdit(member)}} aria-label={`Edit ${member.name}`}><Pencil size={17}/></button><ChevronRight className="member-open-icon"/>{member.role!== 'Owner' && <button className="icon-button danger" onClick={event=>{event.stopPropagation();removeMember(member.id);}} aria-label={`Remove ${member.name}`}><Trash2 size={18}/></button>}</article>)}</div>
-  {selected&&<div className="modal-backdrop member-detail-backdrop" onMouseDown={event=>event.target===event.currentTarget&&setSelected(null)}><section className="modal member-detail-modal"><div className="modal-heading"><div><p className="eyebrow">Member details</p><h2>{selected.name}</h2><p>{selected.email} · {selected.role}</p></div><button type="button" className="icon-button" onClick={()=>setSelected(null)} aria-label="Close member details"><X/></button></div><div className="member-detail-summary"><div><span>Reserved units</span><strong>{reservedCount}</strong></div><div><span>Cart products</span><strong>{cartEntries.length}</strong></div><div><span>Recent actions</span><strong>{memberActivities.length}</strong></div></div><div className="member-detail-section"><h3>Current reserved items</h3>{cartEntries.length?cartEntries.map(([itemId,quantity])=>{const item=items.find(candidate=>candidate.id===itemId);return item?<div className="member-detail-row" key={itemId}><span className="item-avatar">{item.name[0]}</span><div><strong>{item.name}</strong><small>{item.category}</small></div><span>{quantity} {item.unit}</span><span className="reserved-label">Reserved</span></div>:null;}):<div className="member-inline-empty">No items are currently reserved.</div>}</div><div className="member-detail-section"><h3>Activity</h3>{memberActivities.length?memberActivities.slice(0,8).map(entry=><div className="member-detail-row activity-detail-row" key={entry.id}><div><strong>{entry.action || 'Updated'} {entry.item}</strong><small>{entry.note}</small></div><span>{entry.time}</span></div>):<div className="member-inline-empty">No activity recorded for this member.</div>}</div></section></div>}
-  {modal && <div className="modal-backdrop"><form className="modal small-modal" onSubmit={add}><div className="modal-heading"><div><h2>Add member</h2><p>Invite someone to this pantry.</p></div><button type="button" className="icon-button" onClick={()=>setModal(false)}>×</button></div><div className="form-grid single"><label>Name<input value={name} onChange={e=>setName(e.target.value)}/></label><label>Email address<input type="email" value={email} onChange={e=>setEmail(e.target.value)}/></label></div>{error&&<div className="form-error">{error}</div>}<div className="modal-actions"><button type="button" className="btn secondary" onClick={()=>setModal(false)}>Cancel</button><button className="btn">Add member</button></div></form></div>}
-  {editModal && selected && <div className="modal-backdrop member-edit-backdrop"><form className="modal small-modal member-edit-modal" onSubmit={saveEdit}><div className="modal-heading"><div><h2>Edit member profile</h2><p>Update the member's name, email and photo.</p></div><button type="button" className="icon-button" onClick={()=>setEditModal(false)}>×</button></div><div className="member-photo-editor"><div className="member-avatar large">{editForm.photo ? <img src={editForm.photo} alt="Selected profile"/> : editForm.name.split(' ').map(n=>n[0]).join('').slice(0,2)}</div><button type="button" className="btn secondary" onClick={()=>fileInput.current?.click()}><Camera size={18}/> Change photo</button><input ref={fileInput} hidden type="file" accept="image/*" onChange={readPhoto}/></div><div className="form-grid single"><label>Name<input value={editForm.name} onChange={event=>setEditForm({...editForm,name:event.target.value})}/></label><label>Email address<input type="email" value={editForm.email} onChange={event=>setEditForm({...editForm,email:event.target.value})}/></label></div>{error&&<div className="form-error">{error}</div>}<div className="modal-actions"><button type="button" className="btn secondary" onClick={()=>setEditModal(false)}>Cancel</button><button className="btn">Save profile</button></div></form></div>}</div>;
+  const [members, setMembers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [removing, setRemoving] = useState(false);
+  const [pageError, setPageError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [email, setEmail] = useState("");
+  const [formError, setFormError] = useState("");
+  const [pendingMember, setPendingMember] = useState(null);
+
+  const authenticatedUserId = String(user?.id || user?._id || "");
+
+  const currentMember = members.find(
+    (member) => String(member.id) === authenticatedUserId
+  );
+
+  const isOwner = currentMember?.role === "Owner";
+
+  // Load members from the backend.
+  const loadMembers = async () => {
+    if (!pantryId) {
+      setPageError("Pantry ID is missing.");
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setPageError("");
+
+    try {
+      const response = await getPantryMembers(pantryId);
+
+      const memberList = Array.isArray(response)
+        ? response
+        : Array.isArray(response?.members)
+          ? response.members
+          : [];
+
+      setMembers(memberList);
+    } catch (error) {
+      setPageError(error.message || "Unable to load pantry members.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadMembers();
+  }, [pantryId]);
+
+  // Add an existing registered PantryPal user.
+  const handleAddMember = async (event) => {
+    event.preventDefault();
+
+    if (!email.trim()) {
+      setFormError("Please enter a registered email address.");
+      return;
+    }
+
+    setSubmitting(true);
+    setFormError("");
+    setSuccess("");
+    setPageError("");
+
+    try {
+      await addPantryMember(pantryId, email.trim().toLowerCase());
+
+      setEmail("");
+      setShowAddModal(false);
+      setSuccess("Member added successfully.");
+
+      await loadMembers();
+    } catch (error) {
+      setFormError(error.message || "Unable to add member.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Remove a member from this pantry only.
+  const handleRemoveMember = async (member) => {
+    setPendingMember(member);
+  };
+
+  const confirmRemoveMember = async () => {
+    if (!pendingMember || submitting || removing) return;
+
+    setPageError("");
+    setSuccess("");
+    setRemoving(true);
+
+    try {
+      await removePantryMember(pantryId, pendingMember.id);
+
+      setMembers((previous) =>
+        previous.filter(
+          (existingMember) =>
+            String(existingMember.id) !== String(pendingMember.id)
+        )
+      );
+
+      setSuccess(`${pendingMember.name} was removed from this pantry.`);
+      setPendingMember(null);
+    } catch (error) {
+      setPageError(error.message || "Unable to remove member.");
+    } finally {
+      setRemoving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="page members-page">
+        <h1>Members</h1>
+        <div className="empty-state">
+          <p>Loading pantry members...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (pageError && members.length === 0) {
+    return (
+      <div className="page members-page">
+        <div className="page-heading">
+          <div>
+            <p className="eyebrow">Shared access</p>
+            <h1>Members</h1>
+            <p>Manage access to this pantry.</p>
+          </div>
+        </div>
+
+        <div className="form-error">{pageError}</div>
+
+        <button className="btn" type="button" onClick={loadMembers}>
+          Try again
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="page members-page owner-page-members">
+      <div className="page-heading">
+        <div>
+          <p className="eyebrow">Shared access</p>
+          <h1>Members</h1>
+          <p>Manage access to this pantry.</p>
+        </div>
+
+        {isOwner && (
+          <button
+            type="button"
+            className="btn"
+            onClick={() => {
+              setFormError("");
+              setEmail("");
+              setShowAddModal(true);
+            }}
+          >
+            <Plus size={18} />
+            Add member
+          </button>
+        )}
+      </div>
+
+      {pageError && <div className="form-error">{pageError}</div>}
+      {success && <div className="form-success">{success}</div>}
+
+      <div className="members-count">
+        <Users size={19} />
+        <span>
+          <strong>{members.length}</strong>{" "}
+          {members.length === 1 ? "member" : "members"} in this pantry
+        </span>
+      </div>
+
+      <div className="members-grid">
+        {members.map((member) => (
+          <article className="member-card" key={member.id}>
+            <div className="member-avatar">
+              {member.name
+                ?.split(" ")
+                .map((part) => part[0])
+                .join("")
+                .slice(0, 2)
+                .toUpperCase() || "U"}
+            </div>
+
+            <div className="member-info">
+              <h2>{member.name}</h2>
+              <p>{member.email}</p>
+
+              <span className={`role ${member.role.toLowerCase()}`}>
+                {member.role}
+              </span>
+            </div>
+
+            {isOwner && member.role !== "Owner" && (
+              <button
+                type="button"
+                className="icon-button danger"
+                onClick={() => handleRemoveMember(member)}
+                aria-label={`Remove ${member.name} from pantry`}
+                title="Remove member"
+              >
+                <Trash2 size={18} />
+              </button>
+            )}
+          </article>
+        ))}
+
+        {members.length === 0 && (
+          <div className="empty-state">
+            <Users size={32} />
+            <h3>No members yet</h3>
+            <p>
+              {isOwner
+                ? "Add registered PantryPal users to share this pantry."
+                : "There are no members to display."}
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Add member modal */}
+      {showAddModal && (
+        <div
+          className="modal-backdrop"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !submitting) {
+              setShowAddModal(false);
+            }
+          }}
+        >
+          <form className="modal small-modal" onSubmit={handleAddMember}>
+            <div className="modal-heading">
+              <div>
+                <h2>Add member</h2>
+                <p>
+                  Enter the email address of an existing PantryPal user.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                className="icon-button"
+                onClick={() => setShowAddModal(false)}
+                disabled={submitting}
+                aria-label="Close add member dialog"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="form-grid single">
+              <label>
+                Registered email address
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="person@example.com"
+                  required
+                  disabled={submitting}
+                />
+              </label>
+            </div>
+
+            {formError && <div className="form-error">{formError}</div>}
+
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="btn secondary"
+                onClick={() => setShowAddModal(false)}
+                disabled={submitting}
+              >
+                Cancel
+              </button>
+
+              <button type="submit" className="btn" disabled={submitting}>
+                {submitting ? "Adding..." : "Add member"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+      <ConfirmDialog open={Boolean(pendingMember)} title="Remove pantry member?" itemName={pendingMember?.name || ""} message="This member will lose access to this pantry." confirmLabel="Remove" busy={removing} onCancel={() => !removing && setPendingMember(null)} onConfirm={confirmRemoveMember} />
+    </div>
+  );
 }

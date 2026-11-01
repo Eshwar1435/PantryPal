@@ -1,170 +1,98 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { items as initialItems, activity as initialActivity, members } from '../data/mockData.js';
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { useAuth } from './AuthContext.jsx';
+import { listPantries } from '../services/pantryApi.js';
+import { addPantryItem, changePantryItemQuantity, deletePantryItem, getPantryItems, updatePantryItem } from '../services/inventoryApi.js';
 
 const PantryContext = createContext(null);
 
-const saveLocal = (key, value) => {
-  try { localStorage.setItem(key, typeof value === 'string' ? value : JSON.stringify(value)); }
-  catch (error) {
-    if (error?.name === 'QuotaExceededError') {
-      try {
-        if (key === 'pantrypal-members') localStorage.setItem(key, JSON.stringify(Array.isArray(value) ? value.map(member => ({ ...member, photo: '' })) : []));
-        if (key.endsWith('-profile')) localStorage.setItem(key, JSON.stringify({ ...value, photo: '' }));
-      } catch {}
-    }
-    console.warn(`PantryPal could not save ${key} locally.`);
-  }
-};
-
 export function PantryProvider({ children }) {
-  const [items, setItems] = useState(() => {
-    const defaults = initialItems.map(item => ({ ...item, totalStock: item.totalStock ?? item.quantity, reservedQuantity: 0 }));
-    try {
-      const saved = JSON.parse(localStorage.getItem('pantrypal-inventory'));
-      if (!Array.isArray(saved)) return defaults;
-      const savedIds = new Set(saved.map(item => item.id));
-      const mergedSaved = saved.map(item => {
-        const defaultItem = defaults.find(candidate => candidate.id === item.id);
-        return defaultItem ? { ...defaultItem, ...item, image: defaultItem.image || item.image } : item;
-      });
-      const missingDefaults = defaults.filter(item => !savedIds.has(item.id));
-      return [...mergedSaved, ...missingDefaults];
+  const { user } = useAuth();
+  const [items, setItems] = useState([]);
+  const [inventoryPantryId, setInventoryPantryId] = useState('');
+  const [inventoryLoading, setInventoryLoading] = useState(false);
+  const [inventoryError, setInventoryError] = useState('');
+  const [pantries, setPantries] = useState([]);
+  const [pantriesLoading, setPantriesLoading] = useState(true);
+  const inventoryRequestRef = useRef(0);
+  const quantityRequestsRef = useRef(new Map());
+  const refreshPantries = async () => {
+    if (!user) {
+      setPantries([]);
+      setPantriesLoading(false);
+      return [];
     }
-    catch { return defaults; }
-  });
-  const [cart, setCart] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('pantrypal-aarav-cart')) || {}; }
-    catch { return {}; }
-  });
-  const [activities, setActivities] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('pantrypal-activities')) || initialActivity; }
-    catch { return initialActivity; }
-  });
-  const [notifications, setNotifications] = useState([]);
-  const [memberList, setMemberList] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('pantrypal-members')) || members; }
-    catch { return members; }
-  });
-  const [ownerProfile, setOwnerProfile] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('pantrypal-owner-profile')) || { name: 'Tejesh', email: 'tejesh@example.com' }; }
-    catch { return { name: 'Tejesh', email: 'tejesh@example.com' }; }
-  });
-  const [workspaceName, setWorkspaceName] = useState(() => localStorage.getItem('pantrypal-workspace-name') || 'Hostel Room 204');
-  const [buyerProfile, setBuyerProfile] = useState(() => {
-    const defaultBuyerProfile = {
-      name: 'Aarav',
-      email: 'aarav@example.com',
-      photo: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=480&q=85'
-    };
     try {
-      const saved = JSON.parse(localStorage.getItem('pantrypal-buyer-profile'));
-      return saved ? { ...defaultBuyerProfile, ...saved, photo: saved.photo || defaultBuyerProfile.photo } : defaultBuyerProfile;
+      const loadedPantries = await listPantries();
+      setPantries(loadedPantries);
+      setInventoryPantryId(previous => loadedPantries.some(pantry => String(pantry.id) === String(previous)) ? previous : '');
+      return loadedPantries;
+    } finally {
+      setPantriesLoading(false);
     }
-    catch { return defaultBuyerProfile; }
-  });
-
-  const currentMember = { id: 'u2', name: buyerProfile.name };
-
-  useEffect(() => saveLocal('pantrypal-inventory', items), [items]);
-  useEffect(() => saveLocal('pantrypal-aarav-cart', cart), [cart]);
-  useEffect(() => saveLocal('pantrypal-activities', activities), [activities]);
-  useEffect(() => saveLocal('pantrypal-members', memberList), [memberList]);
-  useEffect(() => saveLocal('pantrypal-owner-profile', ownerProfile), [ownerProfile]);
-  useEffect(() => saveLocal('pantrypal-buyer-profile', buyerProfile), [buyerProfile]);
-  useEffect(() => saveLocal('pantrypal-workspace-name', workspaceName), [workspaceName]);
+  };
   useEffect(() => {
-    const synchronize = event => {
-      try {
-        if (event.key === 'pantrypal-aarav-cart') setCart(JSON.parse(event.newValue || '{}'));
-        if (event.key === 'pantrypal-inventory') setItems(JSON.parse(event.newValue || '[]'));
-        if (event.key === 'pantrypal-activities') setActivities(JSON.parse(event.newValue || '[]'));
-        if (event.key === 'pantrypal-members') setMemberList(JSON.parse(event.newValue || '[]'));
-        if (event.key === 'pantrypal-owner-profile') setOwnerProfile(JSON.parse(event.newValue || '{}'));
-        if (event.key === 'pantrypal-buyer-profile') setBuyerProfile(JSON.parse(event.newValue || '{}'));
-        if (event.key === 'pantrypal-workspace-name') setWorkspaceName(event.newValue || 'Hostel Room 204');
-      } catch {}
-    };
-    window.addEventListener('storage', synchronize);
-    return () => window.removeEventListener('storage', synchronize);
-  }, []);
-  const addActivity = (item, action, quantity, changeAmount = quantity) => {
-    const entry = { id: `activity-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, user: currentMember.name, memberId: currentMember.id, item, action, quantity, changeAmount, note: `${action} ${quantity} unit${quantity === 1 ? '' : 's'}`, time: new Date().toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) };
-    setActivities(previous => [entry, ...previous]);
+    inventoryRequestRef.current += 1;
+    setItems([]);
+    setInventoryError('');
+    setInventoryPantryId('');
+    refreshPantries().catch(() => setPantries([]));
+  }, [user]);
+  const selectPantry = pantryId => {
+    setInventoryPantryId(pantryId);
   };
-
-  const addCartItem = (itemId, amount = 1) => {
-    const item = items.find(candidate => candidate.id === itemId);
-    if (!item) return 0;
-    const reservedQuantity = cart[itemId] || 0;
-    const added = Math.min(amount, Math.max(0, item.quantity));
-    if (added <= 0) return 0;
-    setCart(previous => ({ ...previous, [itemId]: (previous[itemId] || 0) + added }));
-    setItems(previous => previous.map(candidate => candidate.id === itemId ? { ...candidate, quantity: Math.max(0, candidate.quantity - added), reservedQuantity: Math.max(0, (candidate.reservedQuantity || 0) + added), totalStock: candidate.totalStock ?? candidate.quantity } : candidate));
-    addActivity(item.name, reservedQuantity ? 'Increased cart quantity to' : 'Added to cart', reservedQuantity + added, added);
-    return added;
+  const loadInventory = async pantryId => {
+    if (!pantryId) return;
+    const requestId = inventoryRequestRef.current + 1;
+    inventoryRequestRef.current = requestId;
+    setInventoryLoading(true);
+    setInventoryError('');
+    try {
+      const loadedItems = await getPantryItems(pantryId);
+      if (requestId !== inventoryRequestRef.current) return loadedItems;
+      setItems(loadedItems);
+      setInventoryPantryId(pantryId);
+    } catch (error) {
+      if (requestId !== inventoryRequestRef.current) return [];
+      setItems([]);
+      setInventoryError(error.message);
+      throw error;
+    } finally {
+      if (requestId === inventoryRequestRef.current) setInventoryLoading(false);
+    }
   };
-
-  const decreaseCartItem = (itemId) => {
-    const currentQuantity = cart[itemId] || 0;
-    if (!currentQuantity) return;
-    const item = items.find(candidate => candidate.id === itemId);
-    const nextQuantity = currentQuantity - 1;
-    setCart(previous => { const next = { ...previous }; if (nextQuantity <= 0) delete next[itemId]; else next[itemId] = nextQuantity; return next; });
-    setItems(previous => previous.map(candidate => candidate.id === itemId ? { ...candidate, quantity: candidate.quantity + 1, reservedQuantity: Math.max(0, (candidate.reservedQuantity || 0) - 1) } : candidate));
-    addActivity(item.name, nextQuantity ? 'Decreased cart quantity to' : 'Removed from cart', nextQuantity || currentQuantity, -1);
-  };
-
-  const removeCartItem = (itemId) => {
-    const quantity = cart[itemId] || 0;
-    if (!quantity) return;
-    const item = items.find(candidate => candidate.id === itemId);
-    setCart(previous => { const next = { ...previous }; delete next[itemId]; return next; });
-    setItems(previous => previous.map(candidate => candidate.id === itemId ? { ...candidate, quantity: candidate.quantity + quantity, reservedQuantity: Math.max(0, (candidate.reservedQuantity || 0) - quantity) } : candidate));
-    addActivity(item.name, 'Removed from cart', quantity, -quantity);
-  };
-
-  const addInventoryItem = (item) => {
-    const quantity = Math.max(0, Number(item.quantity) || 0);
-    const newItem = { ...item, quantity, totalStock: quantity, reservedQuantity: 0, id: item.id || `i${Date.now()}`, pantryId: item.pantryId || 'p1' };
+  const addInventoryItem = async (item, pantryId = inventoryPantryId) => {
+    if (!pantryId) throw new Error('Select a pantry before adding an item.');
+    const newItem = await addPantryItem(pantryId, item);
     setItems(previous => [...previous, newItem]);
-    setNotifications(previous => [{ id: `notification-${Date.now()}`, itemId: newItem.id, itemName: newItem.name, message: `New pantry item added: ${newItem.name}. Check the updated inventory.`, read: false, time: 'Just now' }, ...previous]);
     return newItem;
   };
-
-  const updateInventoryItem = (id, updates) => setItems(previous => previous.map(item => {
-    if (item.id !== id) return item;
-    const reserved = item.reservedQuantity || 0;
-    const available = updates.quantity === undefined ? item.quantity : Math.max(0, Number(updates.quantity));
-    return { ...item, ...updates, id, quantity: available, totalStock: available + reserved };
-  }));
-  const removeInventoryItem = (id) => setItems(previous => previous.filter(item => item.id !== id));
-  const clearCart = () => {
-    Object.entries(cart).forEach(([itemId, quantity]) => {
-      if (!quantity) return;
-      setItems(previous => previous.map(item => item.id === itemId ? { ...item, quantity: item.quantity + quantity, reservedQuantity: Math.max(0, (item.reservedQuantity || 0) - quantity) } : item));
-      const product = items.find(item => item.id === itemId);
-      if (product) addActivity(product.name, 'Removed from cart', quantity, -quantity);
-    });
-    setCart({});
+  const updateInventoryItem = async (id, updates) => {
+    const updatedItem = await updatePantryItem(id, updates);
+    setItems(previous => previous.map(item => item.id === id ? updatedItem : item));
+    return updatedItem;
   };
-  const markNotificationsRead = () => setNotifications(previous => previous.map(notification => ({ ...notification, read: true })));
-  const markNotificationRead = (id) => setNotifications(previous => previous.map(notification => notification.id === id ? { ...notification, read: true } : notification));
-  const updateOwnerProfile = updates => setOwnerProfile(previous => ({ ...previous, ...updates }));
-  const updateBuyerProfile = updates => {
-    setBuyerProfile(previous => ({ ...previous, ...updates }));
-    setMemberList(previous => previous.map(member => member.id === 'u2' ? { ...member, ...updates } : member));
+  const removeInventoryItem = async id => {
+    await deletePantryItem(id);
+    setItems(previous => previous.filter(item => item.id !== id));
   };
-  const addMember = member => setMemberList(previous => [...previous, member]);
-  const updateMember = (id, updates) => {
-    setMemberList(previous => previous.map(member => member.id === id ? { ...member, ...updates } : member));
-    if (id === 'u2') setBuyerProfile(previous => ({ ...previous, ...updates }));
+  const changeQuantity = async (id, change) => {
+    const previousRequest = quantityRequestsRef.current.get(id) || Promise.resolve();
+    const request = previousRequest
+      .catch(() => undefined)
+      .then(() => changePantryItemQuantity(id, change))
+      .then(updatedItem => {
+        setItems(previous => previous.map(item => item.id === id ? updatedItem : item));
+        return updatedItem;
+      });
+    quantityRequestsRef.current.set(id, request);
+    try {
+      return await request;
+    } finally {
+      if (quantityRequestsRef.current.get(id) === request) quantityRequestsRef.current.delete(id);
+    }
   };
-  const removeMember = id => setMemberList(previous => previous.filter(member => member.id !== id));
-  const updateWorkspaceName = name => setWorkspaceName(name.trim() || 'Hostel Room 204');
-
-  const cartCount = Object.values(cart).reduce((sum, quantity) => sum + quantity, 0);
-  const memberCarts = { [currentMember.id]: cart };
-  const value = useMemo(() => ({ items, cart, cartCount, activities, notifications, ownerProfile, buyerProfile, workspaceName, members: memberList, currentMember, memberCarts, addCartItem, decreaseCartItem, removeCartItem, clearCart, addInventoryItem, updateInventoryItem, removeInventoryItem, markNotificationsRead, markNotificationRead, updateOwnerProfile, updateBuyerProfile, updateWorkspaceName, addMember, updateMember, removeMember }), [items, cart, cartCount, activities, notifications, ownerProfile, buyerProfile, workspaceName, memberList]);
+  const selectedPantry = pantries.find(pantry => String(pantry.id) === String(inventoryPantryId));
+  const value = useMemo(() => ({ items, addInventoryItem, updateInventoryItem, removeInventoryItem, changeQuantity, inventoryLoading, inventoryError, inventoryPantryId, selectedPantry, pantries, pantriesLoading, selectPantry, loadInventory, refreshPantries }), [items, inventoryLoading, inventoryError, inventoryPantryId, selectedPantry, pantries, pantriesLoading]);
   return <PantryContext.Provider value={value}>{children}</PantryContext.Provider>;
 }
 

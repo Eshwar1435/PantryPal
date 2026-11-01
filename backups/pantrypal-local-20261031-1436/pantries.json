@@ -1,0 +1,48 @@
+[
+  {
+    "_id": "6ae1b96569e8205411195f84",
+    "name": "Hostel Kitchen",
+    "ownerId": "671234567890abcdef123456",
+    "memberIds": [
+      "671234567890abcdef123456"
+    ],
+    "createdAt": "2026-10-28T08:59:17.449Z",
+    "updatedAt": "2026-10-28T08:59:17.449Z",
+    "__v": 0
+  },
+  {
+    "_id": "6ae468ba8923971142966ae6",
+    "name": "Hostel Kitchen",
+    "ownerId": "6ae4686c8923971142966ae5",
+    "memberIds": [
+      "6ae4686c8923971142966ae5",
+      "6ae469108923971142966ae7"
+    ],
+    "createdAt": "2026-10-30T09:51:54.277Z",
+    "updatedAt": "2026-10-31T05:44:02.934Z",
+    "__v": 0
+  },
+  {
+    "_id": "6ae5ad9123f13e6992fde8e1",
+    "name": "Phase 7 Pantry A 1793437072426",
+    "ownerId": "6ae5ad9023f13e6992fde8df",
+    "memberIds": [
+      "6ae5ad9023f13e6992fde8df",
+      "6ae5ad9123f13e6992fde8e0"
+    ],
+    "createdAt": "2026-10-31T08:57:53.838Z",
+    "updatedAt": "2026-10-31T08:57:53.859Z",
+    "__v": 0
+  },
+  {
+    "_id": "6ae5ad9123f13e6992fde8e2",
+    "name": "Phase 7 Pantry B 1793437072426",
+    "ownerId": "6ae5ad9023f13e6992fde8df",
+    "memberIds": [
+      "6ae5ad9023f13e6992fde8df"
+    ],
+    "createdAt": "2026-10-31T08:57:53.844Z",
+    "updatedAt": "2026-10-31T08:57:53.844Z",
+    "__v": 0
+  }
+]

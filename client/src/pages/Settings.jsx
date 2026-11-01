@@ -1,40 +1,25 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 import { Bell, Shield, User } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext.jsx';
 import { usePantry } from '../context/PantryContext.jsx';
 
 export default function Settings() {
   const navigate = useNavigate();
-  const { ownerProfile, workspaceName, updateOwnerProfile, updateWorkspaceName } = usePantry();
-  const [name, setName] = useState(ownerProfile.name);
-  const [email, setEmail] = useState(ownerProfile.email);
-  const [workspace, setWorkspace] = useState(workspaceName);
-  const [saved, setSaved] = useState(false);
+  const { user } = useAuth();
+  const { selectedPantry } = usePantry();
+  const [notifications, setNotifications] = useState({
+    lowStock: true,
+    expiry: false,
+    activity: true,
+  });
 
-  useEffect(() => {
-    setName(ownerProfile.name);
-    setEmail(ownerProfile.email);
-  }, [ownerProfile]);
-  useEffect(() => setWorkspace(workspaceName), [workspaceName]);
+  const toggle = key => setNotifications(previous => ({ ...previous, [key]: !previous[key] }));
 
-  const save = event => {
-    event.preventDefault();
-    updateOwnerProfile({ name: name.trim() || 'Owner', email: email.trim() });
-    updateWorkspaceName(workspace);
-    setSaved(true);
-    window.setTimeout(() => setSaved(false), 1800);
-  };
-
-  return <div className="page"><div className="page-heading"><div><p className="eyebrow">Preferences</p><h1>Settings</h1><p>Manage your workspace preferences.</p></div></div>
+  return <div className="page"><div className="page-heading"><div><p className="eyebrow">Preferences</p><h1>Settings</h1><p>Review your authenticated account and pantry preferences.</p></div></div>
     <div className="settings-grid">
-      <form className="panel settings-section" onSubmit={save}>
-        <div className="settings-heading"><User/><div><h2>Account</h2><p>Profile and personal information</p></div></div>
-        <label>Display name<input value={name} onChange={event => setName(event.target.value)} required /></label>
-        <label>Email<input type="email" value={email} onChange={event => setEmail(event.target.value)} required /></label>
-        <label>Workspace name<input value={workspace} onChange={event => setWorkspace(event.target.value)} required /></label>
-        <button className="btn" type="submit">{saved ? 'Changes saved' : 'Save changes'}</button>
-      </form>
-      <section className="panel settings-section"><div className="settings-heading"><Bell/><div><h2>Notifications</h2><p>Choose what updates you receive</p></div></div>{['Low-stock alerts','Expiry reminders','Member activity'].map((x,i)=><label className="toggle-row" key={x}><span>{x}<small>{i===0?'When an item reaches its minimum':'Email and in-app updates'}</small></span><input type="checkbox" defaultChecked={i!==1}/></label>)}</section>
-      <section className="panel settings-section"><div className="settings-heading"><Shield/><div><h2>Privacy & security</h2><p>Keep your shared pantry secure</p></div></div><button type="button" className="btn secondary" onClick={() => navigate('/change-password')}>Change password</button></section>
-    </div>{saved && <div className="toast">Account and workspace details updated.</div>}</div>;
+      <section className="panel settings-section"><div className="settings-heading"><User/><div><h2>Account</h2><p>Details from your authenticated account</p></div></div><div className="settings-readonly"><span>Display name<strong>{user?.name || 'Welcome back'}</strong></span><span>Email<strong>{user?.email || 'Unavailable'}</strong></span></div></section>
+      <section className="panel settings-section"><div className="settings-heading"><Bell/><div><h2>Notifications</h2><p>Choose what updates you receive</p></div></div>{[['lowStock','Low-stock alerts','When an item reaches its minimum'],['expiry','Expiry reminders','Review upcoming and expired items'],['activity','Member activity','Changes made to shared inventory']].map(([key,label,description])=><label className="toggle-row" key={key}><span>{label}<small>{description}</small></span><input type="checkbox" checked={notifications[key]} onChange={() => toggle(key)}/></label>)}</section>
+      <section className="panel settings-section"><div className="settings-heading"><Shield/><div><h2>Selected pantry</h2><p>Pantry information is loaded from MongoDB.</p></div></div><div className="settings-readonly"><span>Pantry<strong>{selectedPantry?.name || 'No pantry selected'}</strong></span><span>Members<strong>{selectedPantry?.memberIds?.length ?? '—'}</strong></span></div><button type="button" className="btn secondary" onClick={() => navigate('/change-password')}>Change password</button></section>
+    </div></div>;
 }
