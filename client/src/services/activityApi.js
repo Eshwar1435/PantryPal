@@ -27,6 +27,7 @@ export const getPantryActivity = async pantryId => {
     id: activity._id || activity.id,
     user: activity.userId?.name || 'Unknown user',
     item: activity.itemId?.name || activity.note?.replace(/^Deleted item:\s*/i, '') || 'Deleted item',
+    pantryName: activity.pantryId?.name || 'Unavailable pantry',
     time: activity.createdAt,
   })) : [];
 };

@@ -7,7 +7,8 @@ const getPantryActivity = async (req, res) => {
     })
       .sort({ createdAt: -1 })
       .populate("userId", "name email")
-      .populate("itemId", "name");
+      .populate("itemId", "name")
+      .populate("pantryId", "name");
 
     return res.status(200).json({
       success: true,

@@ -130,6 +130,7 @@ export default function Dashboard() {
 }
 
 function GlobalDashboard({ pantries, items, activity, user, loading, error }) {
+  const navigate = useNavigate();
   const summary = pantries.map(pantry => {
     const pantryItems = items.filter(item => String(item.pantryId) === String(pantry.id));
     return {
@@ -157,8 +158,8 @@ function GlobalDashboard({ pantries, items, activity, user, loading, error }) {
   return <div className="global-dashboard">
     <div className="stat-grid">{cards.map(({ label, value, icon: Icon, tone }) => <div className="stat-card" key={label}><div className={`stat-icon ${tone}`}><Icon size={21}/></div><div><span>{label}</span><strong>{value}</strong><small>Across accessible pantries</small></div></div>)}</div>
     <div className="dashboard-grid">
-      <section className="panel"><div className="panel-heading"><div><h2>Pantry overview</h2><p>All spaces you can access</p></div><Link to="/pantries">Manage pantries <ArrowUpRight size={16}/></Link></div><div className="pantry-overview-grid">{summary.map(({ pantry, items: pantryItems, low, expiring }) => <article className="pantry-overview-card" key={pantry.id}><div><h3>{pantry.name}</h3><span className="role">{String(pantry.ownerId) === String(user?.id || user?._id) ? 'Owner' : 'Member'}</span></div><p>{pantryItems.length} items · {low.length} low stock · {expiring.length} expiring</p><Link className="text-link" to={`/pantries/${pantry.id}`}>Open pantry <ArrowUpRight size={16}/></Link></article>)}</div></section>
-      <section className="panel"><div className="panel-heading"><div><h2>Recent activity</h2><p>Latest changes across your pantries</p></div><Link to="/activity">History</Link></div>{activity.length ? activity.slice(0, 5).map(entry => <div className="activity-row" key={entry.id}><span className="activity-dot"><Activity size={15}/></span><div><strong>{entry.user} {entry.action?.replaceAll('_', ' ').toLowerCase()} {entry.item}</strong><small>{entry.note} · {new Date(entry.time).toLocaleString()}</small></div></div>) : <div className="empty-state"><p>No inventory activity yet.</p></div>}</section>
+      <section className="panel"><div className="panel-heading"><div><h2>Pantry overview</h2><p>All spaces you can access</p></div><Link to="/pantries">Manage pantries <ArrowUpRight size={16}/></Link></div><div className="pantry-overview-grid">{summary.map(({ pantry, items: pantryItems, low, expiring }) => { const openPantry = () => navigate(`/pantries/${pantry.id}`); const handleKeyDown = event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openPantry(); } }; return <article className="pantry-overview-card" key={pantry.id} role="link" tabIndex="0" onClick={openPantry} onKeyDown={handleKeyDown} aria-label={`Open ${pantry.name} pantry workspace`}><div><h3>{pantry.name}</h3><span className="role">{String(pantry.ownerId) === String(user?.id || user?._id) ? 'Owner' : 'Member'}</span></div><p>{pantryItems.length} items · {low.length} low stock · {expiring.length} expiring</p></article>; })}</div></section>
+      <section className="panel"><div className="panel-heading"><div><h2>Recent activity</h2><p>Latest changes across your pantries</p></div><Link to="/activity">History</Link></div>{activity.length ? activity.slice(0, 5).map(entry => <div className="activity-row" key={entry.id}><span className="activity-dot"><Activity size={15}/></span><div><strong>{entry.user} {entry.action?.replaceAll('_', ' ').toLowerCase()} {entry.item}</strong><small>Pantry: {entry.pantryName} · {entry.note} · {new Date(entry.time).toLocaleString()}</small></div></div>) : <div className="empty-state"><p>No inventory activity yet.</p></div>}</section>
     </div>
   </div>;
 }

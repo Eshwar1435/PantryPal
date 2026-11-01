@@ -699,6 +699,9 @@ body { background: #F7F5EF; }
 .danger-button:hover { background: #963c38; }
 .pantry-overview-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
 .pantry-overview-card { padding: 15px; border: 1px solid var(--line); border-radius: 10px; background: #fbfcfb; }
+.pantry-overview-card { cursor: pointer; transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+.pantry-overview-card:hover, .pantry-overview-card:focus-visible { transform: translateY(-2px); border-color: #8FAF9A; box-shadow: 0 10px 22px rgba(35,66,54,.1); outline: none; }
+.pantry-overview-card:focus-visible { box-shadow: 0 0 0 4px rgba(143,175,154,.35), 0 10px 22px rgba(35,66,54,.1); }
 .pantry-overview-card h3 { margin: 0 0 7px; font-size: 15px; }
 .pantry-overview-card p { color: var(--muted); font-size: 12px; margin: 12px 0 0; }
 .pantry-overview-card .role { display: inline-block; }
