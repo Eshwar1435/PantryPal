@@ -38,3 +38,15 @@ export const login = (payload) => request('/api/auth/login', {
 export const getCurrentUser = () => request('/api/auth/me', { method: 'GET' });
 
 export const logout = () => request('/api/auth/logout', { method: 'POST' });
+
+export const getPreferences = () => request('/api/auth/preferences', { method: 'GET' });
+
+export const updatePreferences = (preferences) => request('/api/auth/preferences', {
+  method: 'PATCH',
+  body: JSON.stringify(preferences),
+});
+
+export const deleteAccount = (payload) => request('/api/auth/account', {
+  method: 'DELETE',
+  body: JSON.stringify(payload),
+});

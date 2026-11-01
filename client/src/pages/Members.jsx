@@ -9,6 +9,7 @@ import {
   removePantryMember,
 } from "../services/pantryApi.js";
 import ConfirmDialog from "../components/ConfirmDialog.jsx";
+import { subscribeRealtime } from "../services/realtime.js";
 
 export default function Members() {
   const { id: pantryId } = useParams();
@@ -25,6 +26,7 @@ export default function Members() {
   const [email, setEmail] = useState("");
   const [formError, setFormError] = useState("");
   const [pendingMember, setPendingMember] = useState(null);
+  const [membersRevision, setMembersRevision] = useState(0);
 
   const authenticatedUserId = String(user?.id || user?._id || "");
 
@@ -64,6 +66,16 @@ export default function Members() {
 
   useEffect(() => {
     loadMembers();
+  }, [pantryId, membersRevision]);
+
+  useEffect(() => {
+    const events = ['pantry:member-added', 'pantry:member-removed', 'pantry:ownership-transferred', 'realtime:status'];
+    const cleanups = events.map(event => subscribeRealtime(event, detail => {
+      if (event === 'realtime:status' ? detail.connected : String(detail.pantryId) === String(pantryId)) {
+        setMembersRevision(previous => previous + 1);
+      }
+    }));
+    return () => cleanups.forEach(cleanup => cleanup());
   }, [pantryId]);
 
   // Add an existing registered PantryPal user.

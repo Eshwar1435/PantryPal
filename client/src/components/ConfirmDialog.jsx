@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { AlertTriangle } from 'lucide-react';
 
-export default function ConfirmDialog({ open, title, itemName, message, confirmLabel = 'Delete', busy = false, onCancel, onConfirm }) {
+export default function ConfirmDialog({ open, title, itemName, message, children, confirmLabel = 'Delete', busy = false, onCancel, onConfirm }) {
   const confirmButton = useRef(null);
 
   useEffect(() => {
@@ -22,6 +22,7 @@ export default function ConfirmDialog({ open, title, itemName, message, confirmL
         <button type="button" className="icon-button" onClick={onCancel} disabled={busy} aria-label="Close confirmation dialog">×</button>
       </div>
       <div className="confirm-warning"><AlertTriangle size={18}/><span><strong>{itemName}</strong><br/>This action cannot be undone.</span></div>
+      {children}
       <div className="modal-actions"><button type="button" className="btn secondary" onClick={onCancel} disabled={busy}>Cancel</button><button ref={confirmButton} type="button" className="btn danger-button" onClick={onConfirm} disabled={busy}>{busy ? 'Deleting...' : confirmLabel}</button></div>
     </section>
   </div>;

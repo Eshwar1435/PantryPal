@@ -1,4 +1,14 @@
 node_modules
 .env
+.env.*
+!.env.example
+client/.env
+client/.env.*
+!client/.env.example
+server/.env
+server/.env.*
+!server/.env.example
+*.env.backup
+*.env.migration-backup
 dist
 .DS_Store

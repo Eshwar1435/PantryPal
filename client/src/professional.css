@@ -84,6 +84,15 @@ body { background: #F7F5EF; }
 .panel { animation: pp-rise .38s cubic-bezier(.2,.75,.25,1) both; }
 .modal { animation: pp-scale .22s cubic-bezier(.2,.75,.25,1) both; }
 .modal-backdrop { animation: pp-fade .16s ease both; }
+.account-danger { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-top:18px; padding-top:18px; border-top:1px solid var(--line); }
+.account-danger div, .delete-field, .delete-transfer-row > span { display:flex; flex-direction:column; gap:4px; }
+.account-danger small, .delete-transfer-row small { color:var(--muted); font-size:12px; }
+.danger-button { background:var(--red)!important; }
+.delete-account-content { display:grid; gap:14px; margin-bottom:18px; font-size:13px; }
+.delete-account-content p { margin:0; }
+.delete-account-content ul { margin:0; padding-left:20px; color:var(--muted); }
+.delete-transfer-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; align-items:center; padding:12px; border:1px solid var(--line); border-radius:8px; }
+.delete-field input { width:100%; }
 .notification-popover { animation: pp-scale .18s cubic-bezier(.2,.75,.25,1) both; transform-origin: top right; }
 .toast, .order-success { animation: pp-rise .35s cubic-bezier(.2,.75,.25,1) both; }
 .availability-note span { animation: pp-pulse 2s ease infinite; }

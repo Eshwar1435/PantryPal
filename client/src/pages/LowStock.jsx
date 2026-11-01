@@ -3,6 +3,7 @@ import { PackageMinus, Plus, TriangleAlert, X } from 'lucide-react';
 import { useParams } from 'react-router-dom';
 import { usePantry } from '../context/PantryContext.jsx';
 import { getGlobalItems, changePantryItemQuantity } from '../services/inventoryApi.js';
+import { subscribeRealtime } from '../services/realtime.js';
 
 export default function LowStock() {
   const { pantryId } = useParams();
@@ -13,6 +14,17 @@ export default function LowStock() {
   const [selectedItem, setSelectedItem] = useState(null);
   const [stockToAdd, setStockToAdd] = useState(1);
   const [updating, setUpdating] = useState(false);
+  const [inventoryRevision, setInventoryRevision] = useState(0);
+
+  useEffect(() => {
+    const events = ['inventory:item-added', 'inventory:item-updated', 'inventory:item-deleted', 'inventory:quantity-updated', 'realtime:status'];
+    const cleanups = events.map(event => subscribeRealtime(event, detail => {
+      if (event === 'realtime:status' ? detail.connected : (!pantryId || String(detail.pantryId) === String(pantryId))) {
+        setInventoryRevision(previous => previous + 1);
+      }
+    }));
+    return () => cleanups.forEach(cleanup => cleanup());
+  }, [pantryId]);
 
   useEffect(() => {
     let active = true;
@@ -32,7 +44,7 @@ export default function LowStock() {
         if (active) setLoading(false);
       });
     return () => { active = false; };
-  }, []);
+  }, [inventoryRevision, pantryId]);
 
   const visibleItems = pantryId
     ? items.filter(item => String(item.pantryId) === String(pantryId))

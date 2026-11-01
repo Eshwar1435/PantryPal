@@ -3,6 +3,7 @@ const Pantry = require("../models/Pantry");
 const PantryItem = require("../models/PantryItem");
 const InventoryActivity = require("../models/InventoryActivity");
 const mongoose = require("mongoose");
+const { emitPantryEvent, closePantryRoom } = require("../realtime");
 
 const supportsTransactions = async () => {
   const hello = await mongoose.connection.db.admin().command({ hello: 1 });
@@ -133,6 +134,8 @@ const deletePantry = async (req, res) => {
       }
     }
 
+    emitPantryEvent(req, "pantry:deleted", id);
+    closePantryRoom(req, id);
     return res.status(200).json({
       success: true,
       message: "Pantry and its inventory history were deleted successfully",

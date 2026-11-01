@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState } from 
 import { useAuth } from './AuthContext.jsx';
 import { listPantries } from '../services/pantryApi.js';
 import { addPantryItem, changePantryItemQuantity, deletePantryItem, getPantryItems, updatePantryItem } from '../services/inventoryApi.js';
+import { configureRealtimePantries, subscribeRealtime } from '../services/realtime.js';
 
 const PantryContext = createContext(null);
 
@@ -24,6 +25,7 @@ export function PantryProvider({ children }) {
     try {
       const loadedPantries = await listPantries();
       setPantries(loadedPantries);
+      configureRealtimePantries(loadedPantries);
       setInventoryPantryId(previous => loadedPantries.some(pantry => String(pantry.id) === String(previous)) ? previous : '');
       return loadedPantries;
     } finally {
@@ -37,6 +39,44 @@ export function PantryProvider({ children }) {
     setInventoryPantryId('');
     refreshPantries().catch(() => setPantries([]));
   }, [user]);
+  useEffect(() => {
+    const inventoryEvents = [
+      'inventory:item-added',
+      'inventory:item-updated',
+      'inventory:item-deleted',
+      'inventory:quantity-updated',
+    ];
+    const cleanups = inventoryEvents.map(event => subscribeRealtime(event, detail => {
+      if (String(detail.pantryId) === String(inventoryPantryId)) {
+        loadInventory(inventoryPantryId).catch(() => undefined);
+      }
+    }));
+    const pantryCleanup = ['pantry:member-added', 'pantry:member-removed', 'pantry:ownership-transferred', 'pantry:deleted']
+      .map(event => subscribeRealtime(event, detail => {
+        refreshPantries().catch(() => undefined);
+        if (String(detail.pantryId) === String(inventoryPantryId) &&
+          (event === 'pantry:deleted' ||
+            (event === 'pantry:member-removed' &&
+              String(detail.memberId) === String(user?.id || user?._id)))) {
+          setItems([]);
+          setInventoryPantryId('');
+        }
+      }));
+    const accessCleanup = subscribeRealtime('pantry:access-revoked', detail => {
+      if (String(detail.pantryId) === String(inventoryPantryId)) {
+        setItems([]);
+        setInventoryPantryId('');
+        refreshPantries().catch(() => undefined);
+      }
+    });
+    const statusCleanup = subscribeRealtime('realtime:status', detail => {
+      if (detail.connected) {
+        refreshPantries().catch(() => undefined);
+        if (inventoryPantryId) loadInventory(inventoryPantryId).catch(() => undefined);
+      }
+    });
+    return () => [...cleanups, ...pantryCleanup, accessCleanup, statusCleanup].forEach(cleanup => cleanup());
+  }, [inventoryPantryId, user]);
   const selectPantry = pantryId => {
     setInventoryPantryId(pantryId);
   };

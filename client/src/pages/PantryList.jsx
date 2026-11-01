@@ -7,6 +7,7 @@ import { getPantryItems } from "../services/inventoryApi.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { usePantry } from "../context/PantryContext.jsx";
 import ConfirmDialog from "../components/ConfirmDialog.jsx";
+import { subscribeRealtime } from "../services/realtime.js";
 
 export default function PantryList() {
   const { user } = useAuth();
@@ -23,6 +24,7 @@ export default function PantryList() {
   const [summary, setSummary] = useState({});
   const [success, setSuccess] = useState("");
   const [pendingDelete, setPendingDelete] = useState(null);
+  const [pantryRevision, setPantryRevision] = useState(0);
 
   const loadPantries = async () => {
     setLoading(true);
@@ -74,6 +76,24 @@ export default function PantryList() {
 
   useEffect(() => {
     loadPantries();
+  }, [pantryRevision]);
+
+  useEffect(() => {
+    const events = [
+      'pantry:member-added',
+      'pantry:member-removed',
+      'pantry:ownership-transferred',
+      'pantry:deleted',
+      'inventory:item-added',
+      'inventory:item-updated',
+      'inventory:item-deleted',
+      'inventory:quantity-updated',
+      'realtime:status',
+    ];
+    const cleanups = events.map(event => subscribeRealtime(event, () => {
+      setPantryRevision(previous => previous + 1);
+    }));
+    return () => cleanups.forEach(cleanup => cleanup());
   }, []);
 
   const create = async (event) => {

@@ -1,3 +1,5 @@
+import { notifySessionExpired } from './session.js';
+
 const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/$/, '');
 
 export class ActivityApiError extends Error {
@@ -19,6 +21,7 @@ export const getPantryActivity = async pantryId => {
   }
 
   const data = await response.json().catch(() => ({}));
+  if (response.status === 401) notifySessionExpired();
   if (!response.ok) {
     throw new ActivityApiError(data.message || `Activity request failed (${response.status}).`, response.status);
   }

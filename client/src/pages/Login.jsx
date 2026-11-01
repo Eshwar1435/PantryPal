@@ -1,10 +1,12 @@
-﻿import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { LockKeyhole, Mail, Soup } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
+import { SESSION_EXPIRED_MESSAGE } from '../services/session.js';
 
 export default function Login(){
- const navigate=useNavigate(); const { login }=useAuth(); const [form,setForm]=useState({email:'',password:''}); const [errors,setErrors]=useState({}); const [submitting,setSubmitting]=useState(false);
+ const navigate=useNavigate(); const location=useLocation(); const { login }=useAuth(); const [form,setForm]=useState({email:'',password:''}); const [sessionMessage]=useState(() => location.state?.sessionExpired ? SESSION_EXPIRED_MESSAGE : sessionStorage.getItem('pantrypal-session-message') || ''); const [errors,setErrors]=useState({form:sessionMessage}); const [submitting,setSubmitting]=useState(false);
+ useEffect(() => { if (sessionMessage) sessionStorage.removeItem('pantrypal-session-message'); }, [sessionMessage]);
  const submit=async e=>{e.preventDefault();const next={};if(!/^\S+@\S+\.\S+$/.test(form.email)) next.email='Enter a valid email address.';if(!form.password) next.password='Password is required.';setErrors(next);if(Object.keys(next).length)return;setSubmitting(true);try{await login(form);navigate('/dashboard',{replace:true});}catch(error){setErrors({form:error.message});}finally{setSubmitting(false);}};
  return <div className="auth-page"><div className="auth-brand-panel"><div className="auth-brand"><span><Soup/></span><strong>PantryPal</strong></div><div><h2>Keep every shared pantry in perfect order.</h2><p>Track inventory, prevent waste, and keep everyone on the same page.</p></div><div className="auth-visual"><span/><span/><span/></div></div><main className="auth-form-panel"><form className="auth-form" onSubmit={submit} noValidate><p className="eyebrow">Shared pantry</p><h1>Welcome back</h1><p className="auth-subtitle">Sign in to manage the pantries you own and share.</p><label>Email address<div className="input-icon"><Mail size={18}/><input type="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} placeholder="name@example.com" disabled={submitting}/></div>{errors.email&&<small className="error">{errors.email}</small>}</label><label>Password<div className="input-icon"><LockKeyhole size={18}/><input type="password" value={form.password} onChange={e=>setForm({...form,password:e.target.value})} placeholder="Your password" disabled={submitting}/></div>{errors.password&&<small className="error">{errors.password}</small>}</label>{errors.form&&<div className="form-error">{errors.form}</div>}<button className="btn auth-submit" disabled={submitting}>{submitting?'Signing in…':'Sign in'}</button><p className="auth-switch">New to PantryPal? <Link to="/register">Create an account</Link></p></form></main></div>;
 }

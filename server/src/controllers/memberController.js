@@ -2,6 +2,7 @@
 const User = require("../models/User");
 const Pantry = require("../models/Pantry");
 const mongoose = require("mongoose");
+const { emitPantryEvent, revokePantryAccess } = require("../realtime");
 
 
 // POST /api/pantries/:id/members
@@ -71,6 +72,9 @@ const addMember = async (req, res) => {
       });
     }
 
+    emitPantryEvent(req, "pantry:member-added", pantry._id, {
+      memberId: user._id.toString(),
+    });
     return res.status(200).json({
       success: true,
       message: "Member added successfully",
@@ -194,6 +198,10 @@ const removeMember = async (req, res) => {
       });
     }
 
+    emitPantryEvent(req, "pantry:member-removed", pantry._id, {
+      memberId: memberId.toString(),
+    });
+    revokePantryAccess(req, pantry._id, memberId);
     return res.status(200).json({
       success: true,
       message: "Member removed successfully",

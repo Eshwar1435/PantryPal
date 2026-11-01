@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const Pantry = require("../models/Pantry");
 const PantryItem = require("../models/PantryItem");
 const InventoryActivity = require("../models/InventoryActivity");
+const { emitPantryEvent } = require("../realtime");
 
 const recordActivity = (req, itemId, action, changeAmount, note) =>
   InventoryActivity.create({
@@ -12,6 +13,25 @@ const recordActivity = (req, itemId, action, changeAmount, note) =>
     changeAmount,
     note,
   });
+
+const emitActivityCreated = (req, activity) => {
+  emitPantryEvent(req, "activity:created", req.pantry._id, {
+    activityId: activity._id.toString(),
+  });
+};
+
+const realtimeItem = item => ({
+  _id: item._id,
+  pantryId: item.pantryId,
+  name: item.name,
+  category: item.category,
+  quantity: item.quantity,
+  unit: item.unit,
+  expiryDate: item.expiryDate,
+  lowStockThreshold: item.lowStockThreshold,
+  createdAt: item.createdAt,
+  updatedAt: item.updatedAt,
+});
 
 const itemFields = [
   "name",
@@ -215,13 +235,17 @@ const addItem = async (req, res) => {
       lowStockThreshold: body.lowStockThreshold,
       createdBy: req.user._id,
     });
-    await recordActivity(
+    const activity = await recordActivity(
       req,
       item._id,
       "ITEM_ADDED",
       item.quantity,
       `Added ${item.name}`
     );
+    emitPantryEvent(req, "inventory:item-added", req.pantry._id, {
+      item: realtimeItem(item),
+    });
+    emitActivityCreated(req, activity);
 
     return res.status(201).json({
       success: true,
@@ -278,13 +302,17 @@ const updateItem = async (req, res) => {
         message: "Inventory item not found",
       });
     }
-    await recordActivity(
+    const activity = await recordActivity(
       req,
       item._id,
       "ITEM_EDITED",
       0,
       `Edited ${item.name}`
     );
+    emitPantryEvent(req, "inventory:item-updated", req.pantry._id, {
+      item: realtimeItem(item),
+    });
+    emitActivityCreated(req, activity);
 
     return res.status(200).json({
       success: true,
@@ -318,13 +346,17 @@ const deleteItem = async (req, res) => {
         message: "Inventory item not found",
       });
     }
-    await recordActivity(
+    const activity = await recordActivity(
       req,
       req.item._id,
       "ITEM_DELETED",
       0,
       `Deleted item: ${req.item.name}`
     );
+    emitPantryEvent(req, "inventory:item-deleted", req.pantry._id, {
+      itemId: req.item._id.toString(),
+    });
+    emitActivityCreated(req, activity);
 
     return res.status(200).json({
       success: true,
@@ -370,13 +402,17 @@ const changeQuantity = async (req, res) => {
       });
     }
     const action = change > 0 ? "QUANTITY_INCREASED" : "QUANTITY_DECREASED";
-    await recordActivity(
+    const activity = await recordActivity(
       req,
       item._id,
       action,
       change,
       `${change > 0 ? "Increased" : "Decreased"} ${req.item.name} quantity`
     );
+    emitPantryEvent(req, "inventory:quantity-updated", req.pantry._id, {
+      item: realtimeItem(item),
+    });
+    emitActivityCreated(req, activity);
 
     return res.status(200).json({
       success: true,

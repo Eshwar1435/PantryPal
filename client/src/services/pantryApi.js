@@ -1,3 +1,5 @@
+import { notifySessionExpired } from './session.js';
+
 const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/$/, '');
 
 export class PantryApiError extends Error {
@@ -31,6 +33,7 @@ const request = async (path, options = {}) => {
   }
 
   const data = await response.json().catch(() => ({}));
+  if (response.status === 401) notifySessionExpired();
   if (!response.ok) {
     throw new PantryApiError(data.message || `Pantry request failed (${response.status}).`, response.status);
   }

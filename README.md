@@ -13,7 +13,11 @@ review stock and expiry alerts, and inspect activity history.
 
 ## Run locally
 
-Create `.env` from `.env.example` and configure MongoDB and a JWT secret.
+Create `server/.env` from `server/.env.example` and configure MongoDB and a JWT
+secret. Create `client/.env` from `client/.env.example` for the API URL. In
+local development, the server generates and persists a cryptographically secure
+JWT secret when `JWT_SECRET` is empty. Production must provide `JWT_SECRET`
+through the hosting environment.
 Then run the API and frontend in separate terminals:
 
 ```powershell
@@ -46,7 +50,8 @@ npm run build
   details or delete items.
 - Quantity updates are atomic and cannot reduce stock below zero.
 - Activity entries record the authenticated user, pantry, item, and action.
-- Low-stock and expiry views use the selected pantry's inventory.
+- Global low-stock and expiry views include every pantry accessible to the
+  authenticated user; pantry workspace routes can filter them to one pantry.
 
 The application has one common account flow. It does not contain Buyer
 authentication, shopping carts, orders, or reservation functionality.

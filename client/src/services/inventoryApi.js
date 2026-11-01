@@ -1,3 +1,5 @@
+import { notifySessionExpired } from './session.js';
+
 const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/$/, '');
 
 export class InventoryApiError extends Error {
@@ -21,6 +23,7 @@ const request = async (path, options = {}) => {
   }
 
   const data = await response.json().catch(() => ({}));
+  if (response.status === 401) notifySessionExpired();
   if (!response.ok) {
     throw new InventoryApiError(data.message || `Inventory request failed (${response.status}).`, response.status);
   }

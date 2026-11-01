@@ -20,6 +20,20 @@ const userSchema = new mongoose.Schema(
       required: true,
       select: false,
     },
+    notificationPreferences: {
+      lowStock: {
+        type: Boolean,
+        default: true,
+      },
+      expiry: {
+        type: Boolean,
+        default: true,
+      },
+      memberActivity: {
+        type: Boolean,
+        default: true,
+      },
+    },
   },
   { timestamps: true }
 );

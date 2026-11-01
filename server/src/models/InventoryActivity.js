@@ -16,7 +16,7 @@ const inventoryActivitySchema = new mongoose.Schema(
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      default: null,
     },
     changeAmount: {
       type: Number,

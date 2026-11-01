@@ -4,6 +4,7 @@ import { useParams } from 'react-router-dom';
 import { usePantry } from '../context/PantryContext.jsx';
 import { daysUntilExpiry, formatExpiryDate } from '../utils/inventoryDates.js';
 import { getGlobalItems } from '../services/inventoryApi.js';
+import { subscribeRealtime } from '../services/realtime.js';
 
 export default function ExpiryAlerts() {
   const { pantryId } = useParams();
@@ -11,6 +12,17 @@ export default function ExpiryAlerts() {
   const [items, setItems] = useState([]);
   const [inventoryLoading, setInventoryLoading] = useState(true);
   const [inventoryError, setInventoryError] = useState('');
+  const [inventoryRevision, setInventoryRevision] = useState(0);
+
+  useEffect(() => {
+    const events = ['inventory:item-added', 'inventory:item-updated', 'inventory:item-deleted', 'inventory:quantity-updated', 'realtime:status'];
+    const cleanups = events.map(event => subscribeRealtime(event, detail => {
+      if (event === 'realtime:status' ? detail.connected : (!pantryId || String(detail.pantryId) === String(pantryId))) {
+        setInventoryRevision(previous => previous + 1);
+      }
+    }));
+    return () => cleanups.forEach(cleanup => cleanup());
+  }, [pantryId]);
 
   useEffect(() => {
     let active = true;
@@ -30,7 +42,7 @@ export default function ExpiryAlerts() {
         if (active) setInventoryLoading(false);
       });
     return () => { active = false; };
-  }, []);
+  }, [inventoryRevision, pantryId]);
 
   const visibleItems = pantryId
     ? items.filter(item => String(item.pantryId) === String(pantryId))

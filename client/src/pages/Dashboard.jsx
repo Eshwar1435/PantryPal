@@ -8,6 +8,7 @@ import { daysUntilExpiry } from '../utils/inventoryDates.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { getPantryActivity } from '../services/activityApi.js';
 import { getGlobalItems } from '../services/inventoryApi.js';
+import { subscribeRealtime } from '../services/realtime.js';
 
 export default function Dashboard() {
   const { pantryId } = useParams();
@@ -25,9 +26,36 @@ export default function Dashboard() {
   const [globalActivity, setGlobalActivity] = useState([]);
   const [globalLoading, setGlobalLoading] = useState(false);
   const [globalError, setGlobalError] = useState('');
+  const [globalRevision, setGlobalRevision] = useState(0);
+  const [activityRevision, setActivityRevision] = useState(0);
   const activePantryId = pantryId;
   const activePantry = pantries.find(pantry => String(pantry.id) === String(activePantryId)) || selectedPantry;
   const isOwner = String(activePantry?.ownerId) === String(user?.id || user?._id);
+
+  useEffect(() => {
+    const events = [
+      'inventory:item-added',
+      'inventory:item-updated',
+      'inventory:item-deleted',
+      'inventory:quantity-updated',
+      'pantry:member-added',
+      'pantry:member-removed',
+      'pantry:deleted',
+      'realtime:status',
+    ];
+    const cleanups = events.map(event => subscribeRealtime(event, detail => {
+      if (event === 'realtime:status' ? detail.connected : (!activePantryId || String(detail.pantryId) === String(activePantryId))) {
+        setGlobalRevision(previous => previous + 1);
+      }
+    }));
+    const activityCleanup = subscribeRealtime('activity:created', detail => {
+      if (!activePantryId || String(detail.pantryId) === String(activePantryId)) {
+        setActivityRevision(previous => previous + 1);
+        setGlobalRevision(previous => previous + 1);
+      }
+    });
+    return () => [...cleanups, activityCleanup].forEach(cleanup => cleanup());
+  }, [activePantryId]);
 
   useEffect(() => {
     if (activePantryId || pantriesLoading) return;
@@ -43,7 +71,7 @@ export default function Dashboard() {
       })
       .catch(error => setGlobalError(error.message))
       .finally(() => setGlobalLoading(false));
-  }, [activePantryId, pantriesLoading, pantries]);
+  }, [activePantryId, pantriesLoading, pantries, globalRevision]);
 
   useEffect(() => {
     if (activePantryId) {
@@ -66,7 +94,7 @@ export default function Dashboard() {
         setActivityError(error.message);
       })
       .finally(() => setActivityLoading(false));
-  }, [activePantryId]);
+  }, [activePantryId, activityRevision]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setDashboardTime(getDashboardTime()), 30000);
