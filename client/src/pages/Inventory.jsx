@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import StatusBadge, { getStatuses } from '../components/StatusBadge.jsx';
 import { changePantryItemQuantity, deletePantryItem, getGlobalItems } from '../services/inventoryApi.js';
 import ConfirmDialog from '../components/ConfirmDialog.jsx';
+import { subscribeRealtime } from '../services/realtime.js';
 
 const blank = { name: '', category: 'Other', customCategory: '', hasExpiry: false, expiryDate: '', quantity: 1, unit: 'pcs', lowStockThreshold: 1 };
 const predefinedCategories = new Set(categories.filter(item => item !== 'Other'));
@@ -170,6 +171,14 @@ function GlobalInventory() {
       .catch(requestError => setError(requestError.message))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => subscribeRealtime('inventory:quantity-updated', detail => {
+    if (detail.itemId && detail.quantity !== undefined) {
+      setItems(previous => previous.map(item => item.id === detail.itemId
+        ? { ...item, quantity: detail.quantity, updatedAt: detail.updatedAt || item.updatedAt }
+        : item));
+    }
+  }), []);
 
   const availableCategories = categoryOptions(items);
   const selectedPantry = pantries.find(pantry => String(pantry.id) === String(pantryId));

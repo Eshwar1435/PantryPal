@@ -373,6 +373,8 @@ const deleteItem = async (req, res) => {
 };
 
 const changeQuantity = async (req, res) => {
+  const timingStart = process.hrtime.bigint();
+  const elapsedMs = () => Number(process.hrtime.bigint() - timingStart) / 1e6;
   try {
     const { change } = req.body || {};
     if (
@@ -394,6 +396,7 @@ const changeQuantity = async (req, res) => {
       { $inc: { quantity: change } },
       { returnDocument: "after", runValidators: true }
     );
+    const databaseMs = elapsedMs();
 
     if (!item) {
       return res.status(409).json({
@@ -402,7 +405,7 @@ const changeQuantity = async (req, res) => {
       });
     }
     const action = change > 0 ? "QUANTITY_INCREASED" : "QUANTITY_DECREASED";
-    const activity = await recordActivity(
+    const activityPromise = recordActivity(
       req,
       item._id,
       action,
@@ -410,9 +413,23 @@ const changeQuantity = async (req, res) => {
       `${change > 0 ? "Increased" : "Decreased"} ${req.item.name} quantity`
     );
     emitPantryEvent(req, "inventory:quantity-updated", req.pantry._id, {
-      item: realtimeItem(item),
+      itemId: item._id.toString(),
+      quantity: item.quantity,
+      change,
+      updatedAt: item.updatedAt,
     });
+    const socketMs = elapsedMs() - databaseMs;
+    const activity = await activityPromise;
+    const activityMs = elapsedMs() - databaseMs;
     emitActivityCreated(req, activity);
+    if (process.env.NODE_ENV !== "production") {
+      console.debug("Quantity update timing", {
+        databaseMs: Number(databaseMs.toFixed(2)),
+        activityMs: Number(activityMs.toFixed(2)),
+        socketMs: Number(socketMs.toFixed(2)),
+        totalMs: Number(elapsedMs().toFixed(2)),
+      });
+    }
 
     return res.status(200).json({
       success: true,

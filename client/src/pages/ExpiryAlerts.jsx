@@ -18,7 +18,13 @@ export default function ExpiryAlerts() {
     const events = ['inventory:item-added', 'inventory:item-updated', 'inventory:item-deleted', 'inventory:quantity-updated', 'realtime:status'];
     const cleanups = events.map(event => subscribeRealtime(event, detail => {
       if (event === 'realtime:status' ? detail.connected : (!pantryId || String(detail.pantryId) === String(pantryId))) {
-        setInventoryRevision(previous => previous + 1);
+        if (event === 'inventory:quantity-updated' && detail.itemId && detail.quantity !== undefined) {
+          setItems(previous => previous.map(item => item.id === detail.itemId
+            ? { ...item, quantity: detail.quantity, updatedAt: detail.updatedAt || item.updatedAt }
+            : item));
+        } else {
+          setInventoryRevision(previous => previous + 1);
+        }
       }
     }));
     return () => cleanups.forEach(cleanup => cleanup());

@@ -48,7 +48,13 @@ export function PantryProvider({ children }) {
     ];
     const cleanups = inventoryEvents.map(event => subscribeRealtime(event, detail => {
       if (String(detail.pantryId) === String(inventoryPantryId)) {
-        loadInventory(inventoryPantryId).catch(() => undefined);
+        if (event === 'inventory:quantity-updated' && detail.itemId && detail.quantity !== undefined) {
+          setItems(previous => previous.map(item => item.id === detail.itemId
+            ? { ...item, quantity: detail.quantity, updatedAt: detail.updatedAt || item.updatedAt }
+            : item));
+        } else {
+          loadInventory(inventoryPantryId).catch(() => undefined);
+        }
       }
     }));
     const pantryCleanup = ['pantry:member-added', 'pantry:member-removed', 'pantry:ownership-transferred', 'pantry:deleted']
@@ -116,19 +122,47 @@ export function PantryProvider({ children }) {
     setItems(previous => previous.filter(item => item.id !== id));
   };
   const changeQuantity = async (id, change) => {
-    const previousRequest = quantityRequestsRef.current.get(id) || Promise.resolve();
-    const request = previousRequest
+    const currentItem = items.find(item => item.id === id);
+    if (!currentItem || (change < 0 && currentItem.quantity + change < 0)) {
+      throw new Error('Quantity cannot be reduced below zero');
+    }
+
+    let queue = quantityRequestsRef.current.get(id);
+    if (!queue) {
+      queue = { confirmedQuantity: currentItem.quantity, pending: [], promise: Promise.resolve() };
+      quantityRequestsRef.current.set(id, queue);
+    }
+    const operation = { change };
+    queue.pending.push(operation);
+    const updateDisplayedQuantity = () => {
+      const pendingChange = queue.pending.reduce((total, pending) => total + pending.change, 0);
+      setItems(previous => previous.map(item => item.id === id
+        ? { ...item, quantity: queue.confirmedQuantity + pendingChange }
+        : item));
+    };
+    updateDisplayedQuantity();
+
+    const request = queue.promise
       .catch(() => undefined)
       .then(() => changePantryItemQuantity(id, change))
       .then(updatedItem => {
-        setItems(previous => previous.map(item => item.id === id ? updatedItem : item));
+        queue.confirmedQuantity = updatedItem.quantity;
+        queue.pending = queue.pending.filter(pending => pending !== operation);
+        updateDisplayedQuantity();
         return updatedItem;
+      })
+      .catch(error => {
+        queue.pending = queue.pending.filter(pending => pending !== operation);
+        updateDisplayedQuantity();
+        throw error;
       });
-    quantityRequestsRef.current.set(id, request);
+    queue.promise = request;
     try {
       return await request;
     } finally {
-      if (quantityRequestsRef.current.get(id) === request) quantityRequestsRef.current.delete(id);
+      if (quantityRequestsRef.current.get(id) === queue && queue.pending.length === 0) {
+        quantityRequestsRef.current.delete(id);
+      }
     }
   };
   const selectedPantry = pantries.find(pantry => String(pantry.id) === String(inventoryPantryId));

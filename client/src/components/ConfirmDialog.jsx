@@ -7,6 +7,11 @@ export default function ConfirmDialog({ open, title, itemName, message, children
   useEffect(() => {
     if (!open) return undefined;
     confirmButton.current?.focus();
+    return undefined;
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return undefined;
     const handleKeyDown = event => {
       if (event.key === 'Escape' && !busy) onCancel();
     };
