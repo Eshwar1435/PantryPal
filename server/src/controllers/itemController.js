@@ -290,7 +290,7 @@ const updateItem = async (req, res) => {
     if (updates.unit !== undefined) updates.unit = updates.unit.trim();
     if (updates.expiryDate === "") updates.expiryDate = null;
 
-    const item = await PantryItem.findByIdAndUpdate(
+    const item = await PantryItem.findOneAndUpdate(
       { _id: req.item._id, pantryId: req.pantry._id },
       { $set: updates },
       { returnDocument: "after", runValidators: true }
